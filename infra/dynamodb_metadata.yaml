@@ -1,0 +1,13 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  FileMetadataTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: FileMetadata
+      AttributeDefinitions:
+        - AttributeName: fileId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: fileId
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
