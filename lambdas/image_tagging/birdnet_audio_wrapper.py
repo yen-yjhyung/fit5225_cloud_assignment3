@@ -1,10 +1,19 @@
 import os
 import uuid
-import json
 from datetime import datetime
+import sys
 
-from model.birdnet_analyzer import config as cfg
-from model.birdnet_analyzer import utils as analyzer_utils
+# Dynamically add the correct path to 'birdnet_analyzer'
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+BIRDNET_PATH = os.path.join(CURRENT_DIR, "model", "birdnet_analyzer")
+ANALYZE_PATH = os.path.join(BIRDNET_PATH, "analyze")
+
+sys.path.append(BIRDNET_PATH)
+sys.path.append(ANALYZE_PATH)
+
+# Now you can import directly
+import config as cfg
+import analyzer_utils as analyzer_utils
 
 def run_audio_prediction(file_path):
     # Set up config paths

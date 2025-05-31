@@ -1,6 +1,8 @@
 import os
 import json
 from detect_wrapper import run_tagging
+import sys
+sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
 def test_local_file(file_path, media_type):
     print(f"Running test for: {file_path} ({media_type})\n")
