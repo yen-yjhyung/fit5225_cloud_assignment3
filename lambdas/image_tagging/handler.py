@@ -1,64 +1,51 @@
-# lambdas/image_tagging/handler.py
-
 import json
-import urllib.parse
 import boto3
-import mimetypes
 import os
+import tempfile
 from detect_wrapper import run_tagging
-from utils import generate_dynamodb_record
+from utils import upload_to_dynamodb
 
-# Set up DynamoDB table from environment variable
-dynamodb = boto3.resource("dynamodb")
-TABLE_NAME = os.environ.get("TABLE_NAME")
-table = dynamodb.Table(TABLE_NAME)
+s3_client = boto3.client("s3")
 
 def lambda_handler(event, context):
     try:
-        # Extract S3 info from the event
+        # Extract bucket & key
         record = event["Records"][0]
-        bucket_name = record["s3"]["bucket"]["name"]
-        object_key = urllib.parse.unquote_plus(record["s3"]["object"]["key"])
-        s3_url = f"https://{bucket_name}.s3.amazonaws.com/{object_key}"
+        bucket = record["s3"]["bucket"]["name"]
+        key = record["s3"]["object"]["key"]
 
-        # Download the file from S3 to Lambda's /tmp directory
-        s3 = boto3.client("s3")
-        local_file_path = f"/tmp/{object_key.split('/')[-1]}"
-        s3.download_file(bucket_name, object_key, local_file_path)
-
-        # Detect the media type from the file extension
-        mime_type, _ = mimetypes.guess_type(local_file_path)
-        if mime_type is None:
-            raise Exception("Unable to detect MIME type.")
-
-        if mime_type.startswith("image"):
+        # Infer media type from file extension
+        extension = key.lower().split(".")[-1]
+        if extension in ["jpg", "jpeg", "png", "bmp"]:
             media_type = "image"
-        elif mime_type.startswith("video"):
+        elif extension in ["mp4", "mov", "avi", "mkv"]:
             media_type = "video"
-        elif mime_type.startswith("audio"):
+        elif extension in ["wav", "mp3", "flac"]:
             media_type = "audio"
         else:
-            raise Exception(f"Unsupported file type: {mime_type}")
+            raise ValueError(f"Unsupported file extension: {extension}")
 
-        # Run prediction and get tags
-        tags = run_tagging(local_file_path, media_type)
+        # Download the file to /tmp
+        with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+            s3_client.download_fileobj(bucket, key, tmp_file)
+            tmp_path = tmp_file.name
 
-        # Generate the final DynamoDB record and insert it
-        record = generate_dynamodb_record(s3_url, tags, media_type)
-        table.put_item(Item=record)
+        # Run prediction
+        result = run_tagging(tmp_path, media_type)
+
+        # Add link to original S3 file
+        result["link"] = f"https://{bucket}.s3.amazonaws.com/{key}"
+
+        # Upload result to DynamoDB
+        upload_to_dynamodb(result)
 
         return {
             "statusCode": 200,
-            "body": json.dumps({
-                "message": "Tagging successful.",
-                "record": record
-            })
+            "body": json.dumps({"message": "Tagging complete", "result": result})
         }
 
     except Exception as e:
         return {
             "statusCode": 500,
-            "body": json.dumps({
-                "error": str(e)
-            })
+            "body": json.dumps({"error": str(e)})
         }
