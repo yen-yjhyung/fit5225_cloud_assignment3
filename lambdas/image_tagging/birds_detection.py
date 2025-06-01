@@ -57,18 +57,6 @@ def image_prediction(image_path, result_filename=None, save_dir = "./image_predi
     # Convert YOLO result to Detections format
     detections = sv.Detections.from_ultralytics(result)
 
-    # Filter detections based on confidence threshold and check if any exist
-    if detections.class_id is not None:
-        detections = detections[(detections.confidence > confidence)]
-
-        # Create labels for the detected objects
-        labels = [f"{class_dict[cls_id]} {conf*100:.2f}%" for cls_id, conf in 
-                  zip(detections.class_id, detections.confidence)]
-
-        # Annotate the image with boxes and labels
-        box_annotator.annotate(img, detections=detections)
-        label_annotator.annotate(img, detections=detections, labels=labels)
-
     if result_filename:
         os.makedirs(save_dir, exist_ok=True)  # Ensure the save directory exists
         save_path = os.path.join(save_dir, result_filename)
@@ -80,9 +68,55 @@ def image_prediction(image_path, result_filename=None, save_dir = "./image_predi
     else:
         print("Filename is none, result is not saved.")
 
+    # Filter based on confidence
+    detections = detections[detections.confidence > confidence]
+
+    if len(detections.class_id) > 0:
+        labels = [f"{class_dict[cls_id]} {conf:.2f}" for cls_id, conf in zip(detections.class_id, detections.confidence)]
+        box_annotator.annotate(img, detections)
+        label_annotator.annotate(img, detections, labels)
+
+        # Save annotated image if requested
+        if result_filename:
+            os.makedirs(save_dir, exist_ok=True)
+            save_path = os.path.join(save_dir, result_filename)
+            cv.imwrite(save_path, img)
+
+        # Count detected bird names
+        tag_counter = {}
+        for cls_id in detections.class_id:
+            name = class_dict[cls_id]
+            tag_counter[name] = tag_counter.get(name, 0) + 1
+
+        return tag_counter
+
+    return {}  # No detections
+
+    # Filter detections based on confidence threshold and check if any exist
+    # if detections.class_id is not None:
+    #     detections = detections[(detections.confidence > confidence)]
+
+    #     # Create labels for the detected objects
+    #     labels = [f"{class_dict[cls_id]} {conf*100:.2f}%" for cls_id, conf in 
+    #               zip(detections.class_id, detections.confidence)]
+
+    #     # Annotate the image with boxes and labels
+    #     box_annotator.annotate(img, detections=detections)
+    #     label_annotator.annotate(img, detections=detections, labels=labels)
+    # if detections.class_id is not None and len(detections.class_id) > 0:
+    #     tags_dict = {}
+    #     for cls_id in detections.class_id:
+    #         name = class_dict[cls_id]
+    #         tags_dict[name] = tags_dict.get(name, 0) + 1
+    #     return tags_dict
+    # else:
+    #     return {}  # no detections    
+
+
+
 
 # ## Video Detection
-def video_prediction(video_path, result_filename=None, save_dir = "./video_prediction_results", confidence=0.5, model="./model.pt"):
+def video_prediction(video_path, result_filename=None, save_dir = "./video_prediction_results", confidence=0.5, model="./model.pt", frame_skip=24):
     """
     Function to make predictions on video frames using a trained YOLO model and display the video with annotations.
 
@@ -91,6 +125,8 @@ def video_prediction(video_path, result_filename=None, save_dir = "./video_predi
         save_video (bool): If True, saves the video with annotations. Default is False.
         filename (str): The name of the output file where the video will be saved if save_video is True.
     """
+    cap = None
+    out = None
     try:
         # Load video info and extract width, height, and frames per second (fps)
         video_info = sv.VideoInfo.from_video_path(video_path=video_path)
@@ -111,7 +147,6 @@ def video_prediction(video_path, result_filename=None, save_dir = "./video_predi
         class_dict = model.names  # Get the class labels from the model
 
         # Directory to save the video with annotations, if required
-        
         if result_filename:
             os.makedirs(save_dir, exist_ok=True)  # Ensure save directory exists
             save_path = os.path.join(save_dir, result_filename)
@@ -124,6 +159,10 @@ def video_prediction(video_path, result_filename=None, save_dir = "./video_predi
         cap = cv.VideoCapture(video_path)
         if not cap.isOpened():
             raise Exception("Error: couldn't open the video!")
+        
+        # Track the highest count per species across frames
+        max_species_count = {}
+        frame_index = 0 # Initialize frame index for tracking
 
         # Process the video frame by frame
         while cap.isOpened():
@@ -131,9 +170,17 @@ def video_prediction(video_path, result_filename=None, save_dir = "./video_predi
             if not ret:  # End of the video
                 break
 
+            # Skip frames that are not multiples of frame_skip
+            if frame_index % frame_skip != 0:
+                frame_index += 1
+                continue
+
+            frame_index += 1  # Increment frame index
+
             # Make predictions on the current frame using the YOLO model
             result = model(frame)[0]
             detections = sv.Detections.from_ultralytics(result)  # Convert model output to Detections format
+
             detections = tracker.update_with_detections(detections=detections)  # Track detected objects
 
             # Filter detections based on confidence
@@ -141,28 +188,52 @@ def video_prediction(video_path, result_filename=None, save_dir = "./video_predi
                 detections = detections[(detections.confidence > confidence)]  # Keep detections with confidence greater than a threashold
 
                 # Generate labels for tracked objects
-                labels_0 = [f"#{trk_id} {class_dict[cls_id]} {conf*100:.2f}%" 
-                            for trk_id, cls_id, conf in zip(
-                            detections.tracker_id, detections.class_id, detections.confidence)]
+                # labels_0 = [f"#{trk_id} {class_dict[cls_id]} {conf*100:.2f}%" 
+                #             for trk_id, cls_id, conf in zip(
+                #             detections.tracker_id, detections.class_id, detections.confidence)]
 
-                labels_1 = [f"{class_dict[cls_id]} {conf*100:.2f}%" for cls_id, conf in zip(
+                labels = [f"{class_dict[cls_id]} {conf*100:.2f}%" for cls_id, conf in zip(
                             detections.class_id, detections.confidence)]
 
                 # Annotate the frame with bounding boxes and labels
                 box_annotator.annotate(frame, detections=detections)
-                label_annotator.annotate(frame, detections=detections, labels=labels_1)
+                label_annotator.annotate(frame, detections=detections, labels=labels)
+
+                # Inside the frame loop, after running detection:
+                frame_counts = {}  # count of birds per species in this frame
+
+                for cls_id in detections.class_id:
+                    name = class_dict[cls_id]
+                    frame_counts[name] = frame_counts.get(name, 0) + 1
+
+                # Update max counts
+                for name, count in frame_counts.items():
+                    if name not in max_species_count or count > max_species_count[name]:
+                        max_species_count[name] = count
 
             # Save the annotated frame to the output video file if save_video is True
             if result_filename:
                 out.write(frame)
 
+        # Count bird types at the end
+        # tag_counter = {}
+        # for cls_id, _ in unique_birds:
+        #     name = class_dict[cls_id]
+        #     tag_counter[name] = tag_counter.get(name, 0) + 1
+
+        tag_list = [{"name": k, "count": v} for k, v in max_species_count.items()]
+
+        return {"tags": tag_list, "mediaType":"video"}
+
+
     except Exception as e:
         print(f"An error occurred: {e}")
-
+        return {}
     finally:
         # Release resources
-        cap.release()
-        if result_filename:
+        if cap:
+            cap.release()
+        if result_filename and out:
             out.release()
         print("Video processing complete, Released resources.")
 
