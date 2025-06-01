@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signUp } from '@/lib/auth';
+import Link from 'next/link';
 
 export default function SignUp() {
   const [form, setForm] = useState({ email: '', password: '', name: ''});
@@ -28,6 +29,14 @@ export default function SignUp() {
       <input type="password" placeholder="Password" required onChange={(e) => setForm({ ...form, password: e.target.value })} />
       <button type="submit">Sign Up</button>
       <p>{message}</p>
+      <p>
+        Already have an account?{' '}
+        <Link href="/auth/login">
+          <span style={{ color: 'blue', textDecoration: 'underline', cursor: 'pointer' }}>
+            Sign in here
+          </span>
+        </Link>
+      </p>
     </form>
   );
 }
