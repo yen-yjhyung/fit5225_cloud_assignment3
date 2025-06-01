@@ -19,7 +19,7 @@ const poolData = {
   ClientId: clientId,
 };
 
-const userPool = new CognitoUserPool(poolData);
+export const userPool = new CognitoUserPool(poolData);
 
 export const signUp = async (
   email: string,
@@ -70,4 +70,6 @@ export const signIn = async (
 export const signOut = () => {
   const user = userPool.getCurrentUser();
   if (user) user.signOut();
+  localStorage.removeItem('token');
 };
+
