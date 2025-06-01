@@ -15,7 +15,7 @@ def run_tagging(file_path: str, media_type: str):
     result_filename = f"{name_only}_detected"
 
     if media_type == "image":
-        result = image_prediction(file_path)
+        result = image_prediction(file_path, result_filename=f"{result_filename}.jpg")
         result["mediaType"] = "image"
     elif media_type == "video":
         result = video_prediction(file_path, result_filename=result_filename, frame_skip=24)

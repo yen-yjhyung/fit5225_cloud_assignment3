@@ -12,6 +12,8 @@ import matplotlib.pyplot as plt
 import os
 import requests
 
+ENV = os.getenv("ENV", "prod") # default to prod if ENV is not set
+
 def image_prediction(image_path, result_filename=None, save_dir = "./image_prediction_results", confidence=0.5, model="./model.pt"):
     """
     Function to display predictions of a pre-trained YOLO model on a given image.
@@ -57,7 +59,7 @@ def image_prediction(image_path, result_filename=None, save_dir = "./image_predi
     # Convert YOLO result to Detections format
     detections = sv.Detections.from_ultralytics(result)
 
-    if result_filename:
+    if ENV == "dev" and result_filename:
         os.makedirs(save_dir, exist_ok=True)  # Ensure the save directory exists
         save_path = os.path.join(save_dir, result_filename)
         try:
@@ -65,8 +67,6 @@ def image_prediction(image_path, result_filename=None, save_dir = "./image_predi
             print(f"Image save status = {status}.")
         except Exception as e:
             print(f"Error saving image: {e}")
-    else:
-        print("Filename is none, result is not saved.")
 
     # Filter based on confidence
     detections = detections[detections.confidence > confidence]
@@ -92,28 +92,6 @@ def image_prediction(image_path, result_filename=None, save_dir = "./image_predi
 
     return {}  # No detections
 
-    # Filter detections based on confidence threshold and check if any exist
-    # if detections.class_id is not None:
-    #     detections = detections[(detections.confidence > confidence)]
-
-    #     # Create labels for the detected objects
-    #     labels = [f"{class_dict[cls_id]} {conf*100:.2f}%" for cls_id, conf in 
-    #               zip(detections.class_id, detections.confidence)]
-
-    #     # Annotate the image with boxes and labels
-    #     box_annotator.annotate(img, detections=detections)
-    #     label_annotator.annotate(img, detections=detections, labels=labels)
-    # if detections.class_id is not None and len(detections.class_id) > 0:
-    #     tags_dict = {}
-    #     for cls_id in detections.class_id:
-    #         name = class_dict[cls_id]
-    #         tags_dict[name] = tags_dict.get(name, 0) + 1
-    #     return tags_dict
-    # else:
-    #     return {}  # no detections    
-
-
-
 
 # ## Video Detection
 def video_prediction(video_path, result_filename=None, save_dir = "./video_prediction_results", confidence=0.5, model="./model.pt", frame_skip=24):
@@ -125,117 +103,194 @@ def video_prediction(video_path, result_filename=None, save_dir = "./video_predi
         save_video (bool): If True, saves the video with annotations. Default is False.
         filename (str): The name of the output file where the video will be saved if save_video is True.
     """
-    cap = None
-    out = None
-    try:
-        # Load video info and extract width, height, and frames per second (fps)
-        video_info = sv.VideoInfo.from_video_path(video_path=video_path)
-        w, h, fps = int(video_info.width), int(video_info.height), int(video_info.fps)
+    model = YOLO(model)
 
-        # Calculate the optimal thickness for annotations and text scale based on video resolution
-        thickness = sv.calculate_optimal_line_thickness(resolution_wh=video_info.resolution_wh)
-        text_scale = sv.calculate_optimal_text_scale(resolution_wh=video_info.resolution_wh)
+    result = {
+        "tags": [],
+        "mediaType": "video"
+    }
+    cap = cv.VideoCapture(video_path)
+    if not cap.isOpened():
+        print("Failed to open video file.")
+        return result
 
-        # Initialize YOLO model, tracker, and color lookup for annotations
-        box_annotator = sv.BoxAnnotator(thickness=thickness, color_lookup=sv.ColorLookup.TRACK)
-        label_annotator = sv.LabelAnnotator(text_scale=text_scale, text_thickness=thickness, 
-                                            text_position=sv.Position.TOP_LEFT,
-                                            color_lookup=sv.ColorLookup.TRACK)
+    fps = cap.get(cv.CAP_PROP_FPS)
+    width  = int(cap.get(cv.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv.CAP_PROP_FRAME_HEIGHT))
+    fourcc = cv.VideoWriter_fourcc(*'mp4v')
 
-        model = YOLO(model)  # Load your custom-trained YOLO model
-        tracker = sv.ByteTrack(frame_rate=fps)  # Initialize the tracker with the video's frame rate
-        class_dict = model.names  # Get the class labels from the model
+    save_annotated = os.getenv("ENV") == "dev"
+    output_path = None
+    out_writer = None
 
-        # Directory to save the video with annotations, if required
-        if result_filename:
-            os.makedirs(save_dir, exist_ok=True)  # Ensure save directory exists
-            save_path = os.path.join(save_dir, result_filename)
-            out = cv.VideoWriter(save_path, cv.VideoWriter_fourcc(*"XVID"), fps, (w, h))  # Initialize video writer
-        else:
-            print("Result filename is required to save the video file.")
-            return
+    # Calculate optimal thickness for boxes and text based on image resolution
+    thickness = sv.calculate_optimal_line_thickness(resolution_wh=(width, height))
+    text_scale = sv.calculate_optimal_text_scale(resolution_wh=(width, height))
+
+    # Set up color palette for annotations
+    color_palette = sv.ColorPalette.from_matplotlib('magma', 10)
+
+    # Create box and label annotators
+    box_annotator = sv.BoxAnnotator(thickness=thickness, color=color_palette)
+    label_annotator = sv.LabelAnnotator(color=color_palette, text_scale=text_scale, 
+                                        text_thickness=thickness, 
+                                        text_position=sv.Position.TOP_LEFT)
+
+    if save_annotated and result_filename:
+        os.makedirs("video_prediction_results", exist_ok=True)
+        output_path = os.path.join("video_prediction_results", f"{result_filename}.mp4")
+        out_writer = cv.VideoWriter(output_path, fourcc, fps, (width, height))
+
+    tag_max_counts = {}
+    frame_count = 0
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        if frame_count % frame_skip == 0:
+            results = model(frame)[0]
+            detections = sv.Detections.from_ultralytics(results)
+
+            labels = [model.names[class_id] for class_id in detections.class_id]
+
+            # Track max counts
+            for label in labels:
+                current_count = labels.count(label)
+                tag_max_counts[label] = max(tag_max_counts.get(label, 0), current_count)
+
+            if save_annotated and out_writer:
+                if frame_count % frame_skip == 0:
+                    annotated_frame = box_annotator.annotate(
+                        scene=frame.copy(),
+                        detections=detections
+                    )
+                    label_annotator.annotate(annotated_frame, detections, labels)
+                    out_writer.write(annotated_frame)
+                else:
+                    out_writer.write(frame)
+
+        frame_count += 1
+
+    cap.release()
+    if out_writer:
+        out_writer.release()
+
+    result["tags"] = [{"name": name, "count": count} for name, count in tag_max_counts.items()]
+    return result
+# # ## Video Detection
+# def video_prediction(video_path, result_filename=None, save_dir = "./video_prediction_results", confidence=0.5, model="./model.pt", frame_skip=24):
+#     """
+#     Function to make predictions on video frames using a trained YOLO model and display the video with annotations.
+
+#     Parameters:
+#         video_path (str): Path to the video file.
+#         save_video (bool): If True, saves the video with annotations. Default is False.
+#         filename (str): The name of the output file where the video will be saved if save_video is True.
+#     """
+#     cap = None
+#     out = None
+#     try:
+#         # Load video info and extract width, height, and frames per second (fps)
+#         video_info = sv.VideoInfo.from_video_path(video_path=video_path)
+#         w, h, fps = int(video_info.width), int(video_info.height), int(video_info.fps)
+
+#         # Calculate the optimal thickness for annotations and text scale based on video resolution
+#         thickness = sv.calculate_optimal_line_thickness(resolution_wh=video_info.resolution_wh)
+#         text_scale = sv.calculate_optimal_text_scale(resolution_wh=video_info.resolution_wh)
+
+#         # Initialize YOLO model, tracker, and color lookup for annotations
+#         box_annotator = sv.BoxAnnotator(thickness=thickness, color_lookup=sv.ColorLookup.TRACK)
+#         label_annotator = sv.LabelAnnotator(text_scale=text_scale, text_thickness=thickness, 
+#                                             text_position=sv.Position.TOP_LEFT,
+#                                             color_lookup=sv.ColorLookup.TRACK)
+
+#         model = YOLO(model)  # Load your custom-trained YOLO model
+#         tracker = sv.ByteTrack(frame_rate=fps)  # Initialize the tracker with the video's frame rate
+#         class_dict = model.names  # Get the class labels from the model
+
+#         # Directory to save the video with annotations, if required
+#         if ENV == "dev" and result_filename:
+#             os.makedirs(save_dir, exist_ok=True)  # Ensure save directory exists
+#             save_path = os.path.join(save_dir, result_filename)
+#             out = cv.VideoWriter(save_path, cv.VideoWriter_fourcc(*"XVID"), fps, (w, h))  # Initialize video writer
         
-        # Capture the video from the given path
-        cap = cv.VideoCapture(video_path)
-        if not cap.isOpened():
-            raise Exception("Error: couldn't open the video!")
+#         # Capture the video from the given path
+#         cap = cv.VideoCapture(video_path)
+#         if not cap.isOpened():
+#             raise Exception("Error: couldn't open the video!")
         
-        # Track the highest count per species across frames
-        max_species_count = {}
-        frame_index = 0 # Initialize frame index for tracking
+#         # Track the highest count per species across frames
+#         max_species_count = {}
+#         frame_index = 0 # Initialize frame index for tracking
 
-        # Process the video frame by frame
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if not ret:  # End of the video
-                break
+#         # Process the video frame by frame
+#         while cap.isOpened():
+#             ret, frame = cap.read()
+#             if not ret:  # End of the video
+#                 break
 
-            # Skip frames that are not multiples of frame_skip
-            if frame_index % frame_skip != 0:
-                frame_index += 1
-                continue
+#             # Skip frames that are not multiples of frame_skip
+#             if frame_index % frame_skip != 0:
+#                 frame_index += 1
+#                 continue
 
-            frame_index += 1  # Increment frame index
+#             frame_index += 1  # Increment frame index
 
-            # Make predictions on the current frame using the YOLO model
-            result = model(frame)[0]
-            detections = sv.Detections.from_ultralytics(result)  # Convert model output to Detections format
+#             # Make predictions on the current frame using the YOLO model
+#             result = model(frame)[0]
+#             detections = sv.Detections.from_ultralytics(result)  # Convert model output to Detections format
 
-            detections = tracker.update_with_detections(detections=detections)  # Track detected objects
+#             detections = tracker.update_with_detections(detections=detections)  # Track detected objects
 
-            # Filter detections based on confidence
-            if detections.tracker_id is not None:
-                detections = detections[(detections.confidence > confidence)]  # Keep detections with confidence greater than a threashold
+#             # Filter detections based on confidence
+#             if detections.tracker_id is not None:
+#                 detections = detections[(detections.confidence > confidence)]  # Keep detections with confidence greater than a threashold
 
-                # Generate labels for tracked objects
-                # labels_0 = [f"#{trk_id} {class_dict[cls_id]} {conf*100:.2f}%" 
-                #             for trk_id, cls_id, conf in zip(
-                #             detections.tracker_id, detections.class_id, detections.confidence)]
+#                 # Generate labels for tracked objects
+#                 # labels_0 = [f"#{trk_id} {class_dict[cls_id]} {conf*100:.2f}%" 
+#                 #             for trk_id, cls_id, conf in zip(
+#                 #             detections.tracker_id, detections.class_id, detections.confidence)]
 
-                labels = [f"{class_dict[cls_id]} {conf*100:.2f}%" for cls_id, conf in zip(
-                            detections.class_id, detections.confidence)]
+#                 labels = [f"{class_dict[cls_id]} {conf*100:.2f}%" for cls_id, conf in zip(
+#                             detections.class_id, detections.confidence)]
 
-                # Annotate the frame with bounding boxes and labels
-                box_annotator.annotate(frame, detections=detections)
-                label_annotator.annotate(frame, detections=detections, labels=labels)
+#                 # Annotate the frame with bounding boxes and labels
+#                 box_annotator.annotate(frame, detections=detections)
+#                 label_annotator.annotate(frame, detections=detections, labels=labels)
 
-                # Inside the frame loop, after running detection:
-                frame_counts = {}  # count of birds per species in this frame
+#                 # Inside the frame loop, after running detection:
+#                 frame_counts = {}  # count of birds per species in this frame
 
-                for cls_id in detections.class_id:
-                    name = class_dict[cls_id]
-                    frame_counts[name] = frame_counts.get(name, 0) + 1
+#                 for cls_id in detections.class_id:
+#                     name = class_dict[cls_id]
+#                     frame_counts[name] = frame_counts.get(name, 0) + 1
 
-                # Update max counts
-                for name, count in frame_counts.items():
-                    if name not in max_species_count or count > max_species_count[name]:
-                        max_species_count[name] = count
+#                 # Update max counts
+#                 for name, count in frame_counts.items():
+#                     if name not in max_species_count or count > max_species_count[name]:
+#                         max_species_count[name] = count
 
-            # Save the annotated frame to the output video file if save_video is True
-            if result_filename:
-                out.write(frame)
+#             # Save the annotated frame to the output video file if save_video is True
+#             if ENV == "dev" and result_filename:
+#                 out.write(frame)
 
-        # Count bird types at the end
-        # tag_counter = {}
-        # for cls_id, _ in unique_birds:
-        #     name = class_dict[cls_id]
-        #     tag_counter[name] = tag_counter.get(name, 0) + 1
+#         tag_list = [{"name": k, "count": v} for k, v in max_species_count.items()]
 
-        tag_list = [{"name": k, "count": v} for k, v in max_species_count.items()]
-
-        return {"tags": tag_list, "mediaType":"video"}
+#         return {"tags": tag_list, "mediaType":"video"}
 
 
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        return {}
-    finally:
-        # Release resources
-        if cap:
-            cap.release()
-        if result_filename and out:
-            out.release()
-        print("Video processing complete, Released resources.")
+#     except Exception as e:
+#         print(f"An error occurred: {e}")
+#         return {}
+#     finally:
+#         # Release resources
+#         if cap:
+#             cap.release()
+#         if result_filename and out:
+#             out.release()
+#         print("Video processing complete, Released resources.")
 
 
 if __name__ == '__main__':
