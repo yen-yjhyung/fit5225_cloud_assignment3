@@ -1,17 +1,21 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { signUp } from '@/lib/auth';
 
 export default function SignUp() {
   const [form, setForm] = useState({ email: '', password: '', name: ''});
   const [message, setMessage] = useState('');
+  const router = useRouter();
 
   const handleSubmit = async (e: any) => {
     e.preventDefault();
     try {
       const msg = await signUp(form.email, form.password, form.name);
       setMessage(msg);
+      router.push('/auth/verify'); // Redirect to verification page
+      
     } catch (err: any) {
       setMessage(`Error: ${err}`);
     }

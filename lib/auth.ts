@@ -19,7 +19,7 @@ const poolData = {
   ClientId: clientId,
 };
 
-const userPool = new CognitoUserPool(poolData);
+export const userPool = new CognitoUserPool(poolData);
 
 export const signUp = async (
   email: string,
