@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { signUp } from "@/lib/auth";
 import Link from "next/link";
 
+import { signUp } from "@/lib/auth";
 import { validateSignupForm } from "@/lib/validation/signUpValidation";
+
+import { FiEye, FiEyeOff } from "react-icons/fi";
 
 export default function SignUp() {
   const [form, setForm] = useState({
@@ -23,6 +25,9 @@ export default function SignUp() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleSubmit = async (e: any) => {
     e.preventDefault();
@@ -95,23 +100,51 @@ export default function SignUp() {
           {formErrors.email && (
             <p className="text-red-500 text-sm">{formErrors.email}</p>
           )}
-          <input
-            type="password"
-            placeholder="Password"
-            onChange={(e) => setForm({ ...form, password: e.target.value })}
-            className="w-full border border-gray-300 px-4 py-3 rounded-lg focus:outline-none"
-          />
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Password"
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              className="w-full border border-gray-300 px-4 py-3 rounded-lg focus:outline-none pr-12"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="cursor-pointer absolute right-3 top-1/2 transform -translate-y-1/2"
+              aria-label="Toggle password visibility"
+            >
+              {showPassword ? (
+                <FiEyeOff className="text-red-800" size={20} />
+              ) : (
+                <FiEye className="text-red-800" size={20} />
+              )}
+            </button>
+          </div>
           {formErrors.password && (
             <p className="text-red-500 text-sm">{formErrors.password}</p>
           )}
-          <input
-            type="password"
-            placeholder="Confirm Password"
-            onChange={(e) =>
-              setForm({ ...form, confirmPassword: e.target.value })
-            }
-            className="w-full border border-gray-300 px-4 py-3 rounded-lg focus:outline-none"
-          />
+          <div className="relative">
+            <input
+              type={showConfirmPassword ? "text" : "password"}
+              placeholder="Confirm Password"
+              onChange={(e) =>
+                setForm({ ...form, confirmPassword: e.target.value })
+              }
+              className="w-full border border-gray-300 px-4 py-3 rounded-lg focus:outline-none pr-12"
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              className=" cursor-pointer absolute right-3 top-1/2 transform -translate-y-1/2"
+              aria-label="Toggle confirm password visibility"
+            >
+              {showConfirmPassword ? (
+                <FiEyeOff className="text-red-800" size={20} />
+              ) : (
+                <FiEye className="text-red-800" size={20} />
+              )}
+            </button>
+          </div>
           {formErrors.confirmPassword && (
             <p className="text-red-500 text-sm">{formErrors.confirmPassword}</p>
           )}

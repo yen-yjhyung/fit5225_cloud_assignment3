@@ -3,8 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+
 import { signIn } from "@/lib/auth";
 import { validateLoginForm } from "@/lib/validation/loginValidation";
+
+import { FiEye, FiEyeOff } from "react-icons/fi";
 
 export default function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
@@ -14,6 +17,9 @@ export default function Login() {
   });
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  
+  const [showPassword, setShowPassword] = useState(false);
+
   const router = useRouter();
 
   const handleSubmit = async (e: any) => {
@@ -67,7 +73,7 @@ export default function Login() {
           <h1 className="text-2xl font-bold text-center mb-6">BirdTag</h1>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-4 relative">
           <input
             placeholder="Email"
             onChange={(e) => setForm({ ...form, email: e.target.value })}
@@ -76,12 +82,23 @@ export default function Login() {
           {formErrors.email && (
             <p className="text-red-500 text-sm">{formErrors.email}</p>
           )}
-          <input
-            type="password"
-            placeholder="Password"
-            onChange={(e) => setForm({ ...form, password: e.target.value })}
-            className="w-full border border-gray-300 px-4 py-3 rounded-lg focus:outline-none"
-          />
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Password"
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              className="w-full border border-gray-300 px-4 py-3 rounded-lg focus:outline-none pr-12"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="cursor-pointer absolute right-3 top-1/2 transform -translate-y-1/2"
+              aria-label="Toggle password visibility"
+            >
+              {showPassword ? <FiEyeOff className="text-red-800" size={20} /> : <FiEye className="text-red-800" size={20} />}
+            </button>
+          </div>
+
           {formErrors.password && (
             <p className="text-red-500 text-sm">{formErrors.password}</p>
           )}
