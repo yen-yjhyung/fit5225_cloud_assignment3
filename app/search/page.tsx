@@ -3,13 +3,23 @@
 import { useRouter } from 'next/navigation';
 import { FiLogOut, FiSearch, FiUser, FiX } from 'react-icons/fi';
 import { signOut } from '@/lib/auth';
-import { useEffect, useState, FormEvent } from 'react';
-import { DecodedToken, getCurrentUser } from '@/lib/currentUser';
+import { useState, FormEvent } from 'react';
+import { useAuthTokens, Tokens } from '@/hooks/useAuthTokens';
 
-type MediaItem = {
+type ApiItem = {
     id: string;
-    url: string;
-    title: string;
+    mediaType: 'image' | 'video' | 'audio';
+    thumbnailLink?: string;
+    s3Link: string;
+    userId: string;
+    uploadedAt: string;
+    tags: { name: string; count: string }[];
+};
+
+type SearchResult = {
+    images: ApiItem[];
+    videos: ApiItem[];
+    audio: ApiItem[];
 };
 
 type SpeciesFilter = {
@@ -17,24 +27,20 @@ type SpeciesFilter = {
     count: number;
 };
 
-type SearchResult = {
-    images: MediaItem[];
-    videos: MediaItem[];
-    audio: MediaItem[];
-};
-
 export default function SearchPage() {
     const router = useRouter();
-    const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-    const [user, setUser] = useState<DecodedToken | null>({ email: '', expiry: 0, name: '' });
 
-    // Inputs for adding a species filter
+    // Retrieve tokens from Cognito via custom hook
+    const tokens: Tokens = useAuthTokens();
+
+    // Input fields for adding species filters
     const [inputSpeciesName, setInputSpeciesName] = useState('');
     const [inputSpeciesCount, setInputSpeciesCount] = useState<number>(1);
 
+    // Array of species filters
     const [speciesFilters, setSpeciesFilters] = useState<SpeciesFilter[]>([]);
 
-    // Search results
+    // State for search results, loading indicator, and error message
     const [results, setResults] = useState<SearchResult>({
         images: [],
         videos: [],
@@ -44,31 +50,22 @@ export default function SearchPage() {
     const [error, setError] = useState<string | null>(null);
 
     // Active tab: 'images' | 'videos' | 'audio'
-    const [activeTab, setActiveTab] = useState<'images' | 'videos' | 'audio'>('images');
+    const [activeTab, setActiveTab] = useState<'images' | 'videos' | 'audio'>(
+        'images'
+    );
 
-    useEffect(() => {
-        const u = getCurrentUser();
-        setUser(u);
-        if (!u) {
-            router.push('/auth/login');
-        } else {
-            setIsCheckingAuth(false);
-        }
-    }, [router]);
-
-    if (isCheckingAuth) {
-        return <div className="text-3xl flex items-center justify-center mt-10">Checking session...</div>;
-    }
+    // Base URL of your API Gateway (no trailing slash)
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL;
 
     const handleLogout = () => {
         signOut();
         router.push('/auth/login');
     };
 
+    // Add a new species filter, preventing duplicates
     const addSpeciesFilter = () => {
         const name = inputSpeciesName.trim().toLowerCase();
         if (!name || inputSpeciesCount < 1) return;
-        // Prevent duplicate species
         if (speciesFilters.some((f) => f.name === name)) {
             setInputSpeciesName('');
             return;
@@ -81,12 +78,18 @@ export default function SearchPage() {
         setInputSpeciesCount(1);
     };
 
+    // Remove a species filter by name
     const removeSpeciesFilter = (name: string) => {
         setSpeciesFilters(speciesFilters.filter((f) => f.name !== name));
     };
 
+    // Perform search by calling protected API Gateway endpoint
     const handleSearch = async (e: FormEvent) => {
         e.preventDefault();
+        if (!API_BASE) {
+            setError('API URL is not configured.');
+            return;
+        }
         if (speciesFilters.length === 0) {
             setError('Please add at least one bird filter.');
             return;
@@ -95,16 +98,43 @@ export default function SearchPage() {
         setLoading(true);
 
         try {
-            const resp = await fetch('/api/search', {
+            const idToken = tokens.idToken;
+            if (!idToken) {
+                throw new Error('No ID token available. Please log in again.');
+            }
+
+            const resp = await fetch(`${API_BASE}/query`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${idToken}`,
+                },
                 body: JSON.stringify({ species: speciesFilters }),
             });
+
             if (!resp.ok) {
-                throw new Error(`Server responded with ${resp.status}`);
+                throw new Error(`Server responded with HTTP ${resp.status}`);
             }
-            const data: SearchResult = await resp.json();
-            setResults(data);
+
+            // Expect payload: { results: ApiItem[] }
+            const payload: { results: ApiItem[] } = await resp.json();
+            const items = payload.results || [];
+
+            // Split items into images, videos, and audio arrays
+            const images: ApiItem[] = [];
+            const videos: ApiItem[] = [];
+            const audio: ApiItem[] = [];
+            items.forEach((it) => {
+                if (it.mediaType === 'image') {
+                    images.push(it);
+                } else if (it.mediaType === 'video') {
+                    videos.push(it);
+                } else if (it.mediaType === 'audio') {
+                    audio.push(it);
+                }
+            });
+
+            setResults({ images, videos, audio });
             setActiveTab('images');
         } catch (err) {
             console.error(err);
@@ -131,7 +161,7 @@ export default function SearchPage() {
                         className="hover:text-red-800 flex items-center gap-1 cursor-pointer"
                     >
                         <FiUser size={18} />
-                        {user?.name}
+                        {tokens.name}
                     </button>
                     <button
                         onClick={handleLogout}
@@ -143,7 +173,7 @@ export default function SearchPage() {
                 </div>
             </nav>
 
-            {/* Overlay */}
+            {/* Semi‐transparent Overlay */}
             <div className="absolute inset-0 bg-white/8 z-0" />
 
             {/* Main Content */}
@@ -152,36 +182,45 @@ export default function SearchPage() {
 
                 {/* Filters Form */}
                 <form onSubmit={handleSearch} className="space-y-6">
-                    {/* Species Name and Count Inputs */}
                     <div>
-                        <label className="block mb-1 font-medium">Bird Filters (add multiple)</label>
+                        <label className="block mb-1 font-medium">
+                            Bird Filters (add multiple)
+                        </label>
                         <div className="flex items-end space-x-4">
-                            {/* Species Name Field */}
+                            {/* Species Name Input */}
                             <div className="flex-1">
-                                <label className="block mb-1 text-sm font-medium">Species Name</label>
+                                <label className="block mb-1 text-sm font-medium">
+                                    Species Name
+                                </label>
                                 <input
                                     type="text"
                                     value={inputSpeciesName}
-                                    onChange={(e) => setInputSpeciesName(e.target.value)}
+                                    onChange={(e) =>
+                                        setInputSpeciesName(e.target.value)
+                                    }
                                     placeholder="Enter species name"
                                     className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500"
                                 />
                             </div>
 
-                            {/* Count Field */}
+                            {/* Count Input */}
                             <div className="w-24">
-                                <label className="block mb-1 text-sm font-medium">Count</label>
+                                <label className="block mb-1 text-sm font-medium">
+                                    Count
+                                </label>
                                 <input
                                     type="number"
                                     min={1}
                                     value={inputSpeciesCount}
-                                    onChange={(e) => setInputSpeciesCount(Number(e.target.value))}
+                                    onChange={(e) =>
+                                        setInputSpeciesCount(Number(e.target.value))
+                                    }
                                     className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500"
                                     placeholder="1"
                                 />
                             </div>
 
-                            {/* Add Button */}
+                            {/* Add Filter Button */}
                             <button
                                 type="button"
                                 onClick={addSpeciesFilter}
@@ -209,8 +248,10 @@ export default function SearchPage() {
                         </div>
                     </div>
 
-                    {/* Error Message */}
-                    {error && <div className="text-red-600 font-medium">{error}</div>}
+                    {/* Display Error if Any */}
+                    {error && (
+                        <div className="text-red-600 font-medium">{error}</div>
+                    )}
 
                     {/* Search Button */}
                     <div>
@@ -268,19 +309,27 @@ export default function SearchPage() {
                         {activeTab === 'images' && (
                             <div className="grid grid-cols-3 gap-4">
                                 {results.images.length === 0 ? (
-                                    <p className="col-span-3 text-center text-gray-500">No image results</p>
+                                    <p className="col-span-3 text-center text-gray-500">
+                                        No image results
+                                    </p>
                                 ) : (
                                     results.images.map((item) => (
                                         <div
                                             key={item.id}
-                                            className="rounded overflow-hidden shadow hover:shadow-lg transition"
+                                            className="rounded overflow-hidden shadow hover:shadow-lg transition cursor-pointer"
                                         >
+                                            {/* Thumbnail: click opens full image in new tab */}
                                             <img
-                                                src={item.url}
-                                                alt={item.title}
+                                                src={item.thumbnailLink}
+                                                alt={`Thumbnail of ${item.id}`}
                                                 className="w-full h-40 object-cover"
+                                                onClick={() =>
+                                                    window.open(item.s3Link, '_blank')
+                                                }
                                             />
-                                            <p className="p-2 text-sm font-medium text-gray-800">{item.title}</p>
+                                            <p className="p-2 text-sm font-medium text-gray-800">
+                                                {`Uploaded: ${item.uploadedAt}`}
+                                            </p>
                                         </div>
                                     ))
                                 )}
@@ -288,21 +337,32 @@ export default function SearchPage() {
                         )}
 
                         {activeTab === 'videos' && (
-                            <div className="grid grid-cols-2 gap-6">
+                            <div className="space-y-4">
                                 {results.videos.length === 0 ? (
-                                    <p className="col-span-2 text-center text-gray-500">No video results</p>
+                                    <p className="text-center text-gray-500">
+                                        No video results
+                                    </p>
                                 ) : (
                                     results.videos.map((item) => (
                                         <div
                                             key={item.id}
-                                            className="rounded overflow-hidden shadow hover:shadow-lg transition"
+                                            className="flex items-center justify-between bg-gray-50 rounded px-4 py-3 shadow hover:bg-gray-100 transition"
                                         >
-                                            <video
-                                                src={item.url}
-                                                controls
-                                                className="w-full h-48 bg-black"
-                                            />
-                                            <p className="p-2 text-sm font-medium text-gray-800">{item.title}</p>
+                                            <div>
+                                                <p className="text-gray-800 font-medium">{`Uploaded: ${item.uploadedAt}`}</p>
+                                                <p className="text-sm text-gray-600">{`Tags: ${item.tags
+                                                    .map((t) => `${t.name}(${t.count})`)
+                                                    .join(', ')}`}</p>
+                                            </div>
+                                            {/* Simple link to open video in new tab */}
+                                            <a
+                                                href={item.s3Link}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-red-800 hover:underline"
+                                            >
+                                                View Video
+                                            </a>
                                         </div>
                                     ))
                                 )}
@@ -312,15 +372,30 @@ export default function SearchPage() {
                         {activeTab === 'audio' && (
                             <div className="space-y-4">
                                 {results.audio.length === 0 ? (
-                                    <p className="text-center text-gray-500">No audio results</p>
+                                    <p className="text-center text-gray-500">
+                                        No audio results
+                                    </p>
                                 ) : (
                                     results.audio.map((item) => (
                                         <div
                                             key={item.id}
-                                            className="flex items-center space-x-4 bg-gray-50 rounded px-4 py-3 shadow hover:bg-gray-100 transition"
+                                            className="flex items-center justify-between bg-gray-50 rounded px-4 py-3 shadow hover:bg-gray-100 transition"
                                         >
-                                            <audio src={item.url} controls className="flex-1" />
-                                            <span className="text-gray-800 font-medium">{item.title}</span>
+                                            <div>
+                                                <p className="text-gray-800 font-medium">{`Uploaded: ${item.uploadedAt}`}</p>
+                                                <p className="text-sm text-gray-600">{`Tags: ${item.tags
+                                                    .map((t) => `${t.name}(${t.count})`)
+                                                    .join(', ')}`}</p>
+                                            </div>
+                                            {/* Simple link to open audio in new tab */}
+                                            <a
+                                                href={item.s3Link}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-red-800 hover:underline"
+                                            >
+                                                Play Audio
+                                            </a>
                                         </div>
                                     ))
                                 )}
