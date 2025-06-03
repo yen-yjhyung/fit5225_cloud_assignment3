@@ -1,55 +1,63 @@
-# import os
-# import uuid
-# from datetime import datetime
-# import sys
+import os
+import uuid
+import datetime
+from model.birdnet_analyzer.analyze import utils as analyzer_utils
+from model.birdnet_analyzer import config as cfg
 
-# # Dynamically add the correct path to 'birdnet_analyzer'
-# CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-# BIRDNET_PATH = os.path.join(CURRENT_DIR, "model", "birdnet_analyzer")
-# ANALYZE_PATH = os.path.join(BIRDNET_PATH, "analyze")
+def run_audio_prediction(file_path: str):
 
-# sys.path.append(BIRDNET_PATH)
-# sys.path.append(ANALYZE_PATH)
+    # Resolve paths
+    abs_file_path = os.path.abspath(file_path)
+    file_basename = os.path.splitext(os.path.basename(file_path))[0]
+    output_dir = os.path.abspath("audio_prediction_results")
 
-# # Now you can import directly
-# import config as cfg
-# import analyzer_utils as analyzer_utils
+    output_file_path = os.path.join(output_dir, f"{file_basename}_detection.csv")
 
-# def run_audio_prediction(file_path):
-#     # Set up config paths
-#     input_path = os.path.dirname(file_path)
-#     cfg.set_config({
-#         "input_path": input_path,
-#         "output_path": "/tmp/results"
-#     })
+    # Assume your .tflite and label files are in model
+    model_base_dir = os.path.join(os.path.dirname(__file__), "model")
 
-#     # Run analysis
-#     analyzer_utils.analyze_file(file_path)
 
-#     result_path = os.path.join(cfg.OUTPUT_PATH, cfg.OUTPUT_CSV_FILENAME)
-#     tag_counts = {}
+    config_dict = {
+        "INPUT_PATH": abs_file_path,
+        "OUTPUT_PATH": output_dir,
+        "SCRIPT_DIR": model_base_dir,
+        "PB_MODEL": os.path.join(model_base_dir, "BirdNET_GLOBAL_6K_V2.4_Model"),
+        "MODEL_PATH": os.path.join(model_base_dir, "BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite"),
+        "MDATA_MODEL_PATH": os.path.join(model_base_dir, "BirdNET_GLOBAL_6K_V2.4_MData_Model_V2_FP16.tflite"),
+        "LABELS_FILE": os.path.join(model_base_dir, "BirdNET_GLOBAL_6K_V2.4_Labels.txt"),
+        "TRANSLATED_LABELS_PATH": os.path.join(f"{model_base_dir}/labels/V2.4","BirdNET_GLOBAL_6K_V2.4_Labels_en_uk.txt"),
+        "CODES_FILE": os.path.join(model_base_dir, "eBird_taxonomy_codes_2021E.json"),
+        "RESULT_TYPES": {"csv"},
+        "OUTPUT_CSV_FILENAME": output_file_path,
+    }
 
-#     if not os.path.exists(result_path):
-#         raise FileNotFoundError(f"No prediction output found at {result_path}")
+    # Set configuration
+    cfg.set_config(config_dict)
 
-#     # Parse the result file
-#     with open(result_path, "r") as f:
-#         for line in f:
-#             if line.strip().startswith("Start (s)"):
-#                 continue  # Skip header
-#             parts = line.strip().split("\t")
-#             if len(parts) < 7:
-#                 continue
-#             species_name = parts[6]
-#             tag_counts[species_name] = tag_counts.get(species_name, 0) + 1
+    # load labels
+    try:
+        with open(config_dict["LABELS_FILE"], "r", encoding="utf-8") as f:
+            cfg.LABELS = [line.strip() for line in f.readlines() if line.strip()]
+        print(f"[Audio] Loaded {len(cfg.LABELS)} labels.")
+    except Exception as e:
+        print(f"[Audio] ERROR: Failed to load labels: {e}")
+        cfg.LABELS = []
+    
+    # load translated labels
+    try:
+        with open(config_dict["TRANSLATED_LABELS_PATH"], "r", encoding="utf-8") as f:
+            cfg.TRANSLATED_LABELS = [line.strip() for line in f.readlines() if line.strip()]
+        print(f"[Audio] Loaded {len(cfg.TRANSLATED_LABELS)} translated labels.")
+    except Exception as e:
+        print(f"[Audio] ERROR: Failed to load translated labels: {e}")
+        cfg.TRANSLATED_LABELS = []
 
-#     tags = [{"name": name, "count": count} for name, count in tag_counts.items()]
 
-#     result = {
-#         "id": str(uuid.uuid4()),
-#         "tags": tags,
-#         "mediaType": "audio",
-#         "uploadedAt": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-#     }
+    # Run prediction
+    print(f"[Audio] Analyzing audio: {abs_file_path}")
+    predictions_dict = analyzer_utils.analyze_file((abs_file_path, cfg.get_config()))
 
-#     return result
+    # Return JSON response
+    return {
+        "tags": predictions_dict.get("tags", []),
+    }

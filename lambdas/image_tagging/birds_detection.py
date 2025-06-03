@@ -10,7 +10,7 @@ import cv2 as cv
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-import requests
+from collections import defaultdict
 
 ENV = os.getenv("ENV", "prod") # default to prod if ENV is not set
 
@@ -59,15 +59,8 @@ def image_prediction(image_path, result_filename=None, save_dir = "./image_predi
     # Convert YOLO result to Detections format
     detections = sv.Detections.from_ultralytics(result)
 
-    if ENV == "dev" and result_filename:
-        os.makedirs(save_dir, exist_ok=True)  # Ensure the save directory exists
-        save_path = os.path.join(save_dir, result_filename)
-        try:
-            status = cv.imwrite(save_path, img)
-            print(f"Image save status = {status}.")
-        except Exception as e:
-            print(f"Error saving image: {e}")
-
+    save_annotated = os.getenv("ENV") == "dev"
+    
     # Filter based on confidence
     detections = detections[detections.confidence > confidence]
 
@@ -77,18 +70,25 @@ def image_prediction(image_path, result_filename=None, save_dir = "./image_predi
         label_annotator.annotate(img, detections, labels)
 
         # Save annotated image if requested
-        if result_filename:
+        if save_annotated and result_filename:
             os.makedirs(save_dir, exist_ok=True)
             save_path = os.path.join(save_dir, result_filename)
-            cv.imwrite(save_path, img)
+            try:
+                status = cv.imwrite(save_path, img)
+                print(f"Image save status = {status}.")
+            except Exception as e:
+                print(f"Error saving image: {e}")
 
         # Count detected bird names
-        tag_counter = {}
+        tag_counter = defaultdict(int)
         for cls_id in detections.class_id:
             name = class_dict[cls_id]
-            tag_counter[name] = tag_counter.get(name, 0) + 1
+            tag_counter[name] += 1
 
-        return tag_counter
+
+        return {
+            "tags": [{"name": name, "count": count} for name, count in tag_counter.items()],
+        }
 
     return {}  # No detections
 
@@ -107,7 +107,6 @@ def video_prediction(video_path, result_filename=None, save_dir = "./video_predi
 
     result = {
         "tags": [],
-        "mediaType": "video"
     }
     cap = cv.VideoCapture(video_path)
     if not cap.isOpened():
@@ -179,6 +178,7 @@ def video_prediction(video_path, result_filename=None, save_dir = "./video_predi
 
     result["tags"] = [{"name": name, "count": count} for name, count in tag_max_counts.items()]
     return result
+
 # # ## Video Detection
 # def video_prediction(video_path, result_filename=None, save_dir = "./video_prediction_results", confidence=0.5, model="./model.pt", frame_skip=24):
 #     """
