@@ -3,17 +3,17 @@ export interface LoginForm {
   password: string;
 }
 
-export interface FormErrors {
+export interface LoginFormErrors {
   email: string;
   password: string;
 }
 
 export function validateLoginForm(form: LoginForm): {
   isValid: boolean;
-  errors: FormErrors;
+  errors: LoginFormErrors;
 } {
   let isValid = true;
-  const errors: FormErrors = {
+  const errors: LoginFormErrors = {
     email: "",
     password: "",
   };

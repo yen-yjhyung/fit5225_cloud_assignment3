@@ -1,12 +1,14 @@
 export interface SignupForm {
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   password: string;
   confirmPassword: string;
 }
 
-export interface FormErrors {
-  name: string;
+export interface SignUpFormErrors {
+  firstName: string;
+  lastName: string;
   email: string;
   password: string;
   confirmPassword: string;
@@ -14,18 +16,24 @@ export interface FormErrors {
 
 export function validateSignupForm(form: SignupForm): {
   isValid: boolean;
-  errors: FormErrors;
+  errors: SignUpFormErrors;
 } {
   let isValid = true;
-  const errors: FormErrors = {
-    name: "",
+  const errors: SignUpFormErrors = {
+    firstName: "",
+    lastName: "",
     email: "",
     password: "",
     confirmPassword: "",
   };
 
-  if (!form.name.trim()) {
-    errors.name = "Name is required";
+  if (!form.firstName.trim()) {
+    errors.firstName = "First Name is required";
+    isValid = false;
+  }
+
+  if (!form.lastName.trim()) {
+    errors.lastName = "Last Name is required";
     isValid = false;
   }
 
