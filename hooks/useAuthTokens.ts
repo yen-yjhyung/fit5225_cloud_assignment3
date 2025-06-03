@@ -8,6 +8,7 @@ export interface Tokens {
   accessToken: string | null;
   email?: string;
   name?: string;
+  user_id?: string;
 }
 
 export const useAuthTokens = (): Tokens => {
@@ -32,6 +33,7 @@ export const useAuthTokens = (): Tokens => {
           accessToken: accessTokenObj.getJwtToken(),
           email: decodedIdToken?.email,
           name: decodedIdToken?.given_name,
+          user_id: decodedIdToken?.sub,
         });
       });
     }
