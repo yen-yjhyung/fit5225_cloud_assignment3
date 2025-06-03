@@ -52,7 +52,7 @@ export default function SignUp() {
       try {
         const msg = await signUp(form.email, form.password, form.name);
         setMessage(msg);
-        router.push("/auth/verify"); // Redirect to verification page
+        router.push(`/auth/verify?email=${encodeURIComponent(form.email)}`); // Redirect to verification page
       } catch (err: any) {
         setMessage(`Error: ${err}`);
       } finally {
