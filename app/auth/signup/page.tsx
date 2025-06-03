@@ -5,19 +5,25 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 import { signUp } from "@/lib/auth";
-import { validateSignupForm } from "@/lib/validation/signUpValidation";
+import {
+  SignupForm,
+  SignUpFormErrors,
+  validateSignupForm,
+} from "@/lib/validation/signUpValidation";
 
 import { FiEye, FiEyeOff } from "react-icons/fi";
 
 export default function SignUp() {
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<SignupForm>({
+    firstName: "",
+    lastName: "",
     email: "",
     password: "",
-    name: "",
     confirmPassword: "",
   });
-  const [formErrors, setFormErrors] = useState({
-    name: "",
+  const [formErrors, setFormErrors] = useState<SignUpFormErrors>({
+    firstName: "",
+    lastName: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -33,7 +39,8 @@ export default function SignUp() {
     e.preventDefault();
 
     setFormErrors({
-      name: "",
+      firstName: "",
+      lastName: "",
       email: "",
       password: "",
       confirmPassword: "",
@@ -50,7 +57,12 @@ export default function SignUp() {
       setLoading(true);
 
       try {
-        const msg = await signUp(form.email, form.password, form.name);
+        const msg = await signUp(
+          form.email,
+          form.password,
+          form.firstName,
+          form.lastName
+        );
         setMessage(msg);
         router.push(`/auth/verify?email=${encodeURIComponent(form.email)}`); // Redirect to verification page
       } catch (err: any) {
@@ -85,12 +97,21 @@ export default function SignUp() {
         <div className="space-y-4">
           <input
             type="text"
-            placeholder="Name"
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            placeholder="First Name"
+            onChange={(e) => setForm({ ...form, firstName: e.target.value })}
             className="w-full border border-gray-300 px-4 py-3 rounded-lg focus:outline-none"
           />
-          {formErrors.name && (
-            <p className="text-red-500 text-sm">{formErrors.name}</p>
+          {formErrors.firstName && (
+            <p className="text-red-500 text-sm">{formErrors.firstName}</p>
+          )}
+          <input
+            type="text"
+            placeholder="Last Name"
+            onChange={(e) => setForm({ ...form, lastName: e.target.value })}
+            className="w-full border border-gray-300 px-4 py-3 rounded-lg focus:outline-none"
+          />
+          {formErrors.lastName && (
+            <p className="text-red-500 text-sm">{formErrors.lastName}</p>
           )}
           <input
             placeholder="Email"

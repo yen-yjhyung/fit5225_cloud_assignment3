@@ -48,7 +48,7 @@ export default function Dashboard() {
           <h1 className="text-xl font-bold">BirdTag</h1>
         </div>
         <div className="flex gap-8 items-center">
-          <button onClick={() => handleNavigation('/profile')} className="hover:text-red-800 flex items-center gap-1 cursor-pointer"><FiUser size={18} />{user?.name}</button>
+          <button onClick={() => handleNavigation('/profile')} className="hover:text-red-800 flex items-center gap-1 cursor-pointer"><FiUser size={18} />{user?.given_name}</button>
           <button onClick={() => handleLogout()} className="hover:text-red-800 flex items-center gap-1 cursor-pointer"><FiLogOut size={18} />Logout</button>
         </div>
       </nav>

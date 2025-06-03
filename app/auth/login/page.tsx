@@ -5,13 +5,13 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 import { signIn } from "@/lib/auth";
-import { validateLoginForm } from "@/lib/validation/loginValidation";
+import { LoginForm, LoginFormErrors, validateLoginForm } from "@/lib/validation/loginValidation";
 
 import { FiEye, FiEyeOff } from "react-icons/fi";
 
 export default function Login() {
-  const [form, setForm] = useState({ email: "", password: "" });
-  const [formErrors, setFormErrors] = useState({
+  const [form, setForm] = useState<LoginForm>({ email: "", password: "" });
+  const [formErrors, setFormErrors] = useState<LoginFormErrors>({
     email: "",
     password: "",
   });

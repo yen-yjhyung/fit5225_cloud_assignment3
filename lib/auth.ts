@@ -3,15 +3,15 @@ import {
   CognitoUser,
   AuthenticationDetails,
   CognitoUserAttribute,
-} from 'amazon-cognito-identity-js';
-
-
+} from "amazon-cognito-identity-js";
 
 const userPoolId = process.env.NEXT_PUBLIC_COGNITO_USER_POOL_ID;
 const clientId = process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID;
 
 if (!userPoolId || !clientId) {
-  throw new Error('COGNITO_USER_POOL_ID and COGNITO_CLIENT_ID must be defined in environment variables');
+  throw new Error(
+    "COGNITO_USER_POOL_ID and COGNITO_CLIENT_ID must be defined in environment variables"
+  );
 }
 
 const poolData = {
@@ -24,11 +24,13 @@ export const userPool = new CognitoUserPool(poolData);
 export const signUp = async (
   email: string,
   password: string,
-  name: string,
+  firstName: string,
+  lastName: string
 ): Promise<string> => {
   const attributeList = [
-    new CognitoUserAttribute({ Name: 'email', Value: email }),
-    new CognitoUserAttribute({ Name: 'name', Value: name }),
+    new CognitoUserAttribute({ Name: "email", Value: email }),
+    new CognitoUserAttribute({ Name: "given_name", Value: firstName }),
+    new CognitoUserAttribute({ Name: "family_name", Value: lastName }),
   ];
 
   return new Promise((resolve, reject) => {
@@ -70,6 +72,5 @@ export const signIn = async (
 export const signOut = () => {
   const user = userPool.getCurrentUser();
   if (user) user.signOut();
-  localStorage.removeItem('token');
+  localStorage.removeItem("token");
 };
-
