@@ -37,7 +37,7 @@ export default function Dashboard() {
       style={{ backgroundImage: "url('/bird_picture.jpg')" }}
     >
       <nav className="fixed top-0 left-0 w-full z-50 flex justify-between items-center bg-white/90 backdrop-blur-md px-6 py-4 shadow-md">
-        <div className="flex items-center gap-2">
+        <div className="cursor-pointer flex items-center gap-2" onClick={() => handleNavigation("/dashboard")}>
           <img src="/bird.png" alt="BirdTag Logo" className="w-10 h-10" />
           <h1 className="text-xl font-bold">BirdTag</h1>
         </div>
