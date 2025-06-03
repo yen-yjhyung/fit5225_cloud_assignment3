@@ -72,5 +72,4 @@ export const signIn = async (
 export const signOut = () => {
   const user = userPool.getCurrentUser();
   if (user) user.signOut();
-  localStorage.removeItem("token");
 };

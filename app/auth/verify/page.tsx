@@ -92,7 +92,7 @@ export default function VerifyEmail() {
 
         {message && (
           <p
-            className={`text-sm text-center mt-4 ${
+            className={`text-sm text-center mt-7 ${
               message.startsWith("Error") ? "text-red-500" : "text-green-600"
             }`}
           >

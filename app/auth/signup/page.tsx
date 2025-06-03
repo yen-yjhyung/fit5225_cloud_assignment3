@@ -181,7 +181,13 @@ export default function SignUp() {
         </div>
 
         {message && (
-          <p className="text-red-500 text-sm text-center">{message}</p>
+          <p
+            className={`text-sm text-center mt-7 ${
+              message.startsWith("Error") ? "text-red-500" : "text-green-600"
+            }`}
+          >
+            {message}
+          </p>
         )}
 
         <p className="text-center text-sm mt-16">

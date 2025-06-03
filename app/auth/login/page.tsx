@@ -41,11 +41,10 @@ export default function Login() {
       setLoading(true);
 
       try {
-        const { idToken } = await signIn(form.email, form.password);
-        localStorage.setItem("token", idToken);
+        await signIn(form.email, form.password);
         router.push("/dashboard");
       } catch (err: any) {
-        setMessage(`Login failed: ${err}`);
+        setMessage(`Error: ${err}`);
       } finally {
         setLoading(false);
       }
@@ -114,7 +113,13 @@ export default function Login() {
         </div>
 
         {message && (
-          <p className="text-red-500 text-sm text-center mt-7">{message}</p>
+          <p
+            className={`text-sm text-center mt-7 ${
+              message.startsWith("Error") ? "text-red-500" : "text-green-600"
+            }`}
+          >
+            {message}
+          </p>
         )}
 
         <p className="text-center text-sm mt-16">
