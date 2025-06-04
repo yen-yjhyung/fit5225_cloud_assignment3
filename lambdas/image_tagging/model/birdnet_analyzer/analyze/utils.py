@@ -702,9 +702,9 @@ def analyze_file(item):
             for label, _ in results[timestamp]:
                 try:
                     label_idx = cfg.LABELS.index(label)
-                    common_name = cfg.TRANSLATED_LABELS[label_idx].lower()
+                    common_name = cfg.TRANSLATED_LABELS[label_idx].split("_", 1)[-1].lower()
                 except ValueError:
-                    common_name = label.split("_", 1)[-1].lower()  # Fallback to original label if not found in translated labels
+                    common_name = label.split()[-1].lower()
         
                 if common_name not in duplicated_names:
                     tags.append({"name": common_name, "count": 1})

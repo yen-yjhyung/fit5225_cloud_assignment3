@@ -15,18 +15,12 @@ def run_tagging(file_path: str, media_type: str):
     result_filename = f"{name_only}_detected"
 
     if media_type == "image":
-        result = image_prediction(file_path, result_filename=f"{result_filename}.jpg")
-        result["mediaType"] = "image"
+        tags = image_prediction(file_path, result_filename=f"{result_filename}")
     elif media_type == "video":
-        result = video_prediction(file_path, result_filename=result_filename, frame_skip=24)
-        result["mediaType"] = "video"
+        tags = video_prediction(file_path, result_filename=result_filename, frame_skip=24)
     elif media_type == "audio":
-        result = run_audio_prediction(file_path)
-        result["mediaType"] = "audio"
+        tags = run_audio_prediction(file_path)
     else:
         raise ValueError(f"Unsupported media type: {media_type}")
 
-    local_time = datetime.now()
-    result["id"] = str(uuid.uuid4())
-    result["uploadedAt"] = result.get("uploadedAt") or local_time.strftime("%d-%m-%Y %H:%M:%S")
-    return result
+    return tags
