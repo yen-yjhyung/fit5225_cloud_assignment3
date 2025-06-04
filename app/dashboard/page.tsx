@@ -62,7 +62,7 @@ export default function Dashboard() {
       <div className="absolute inset-0 bg-white/8 z-0" />
 
       <main className="relative z-10 w-full max-w-4xl mx-auto p-10 rounded-xl m-auto">
-        <div className="grid grid-cols-4 gap-6">
+        <div className="grid grid-cols-3 gap-6">
           <button
             onClick={() => handleNavigation("/upload")}
             className="cursor-pointer flex flex-col items-center justify-center bg-red-800 text-white py-6 px-4 rounded-lg shadow hover:bg-red-700 transition"
@@ -83,13 +83,6 @@ export default function Dashboard() {
           >
             <FaTags size={32} className="mb-2" />
             <span>Manage Tags</span>
-          </button>
-          <button
-            onClick={() => handleNavigation("/notifications")}
-            className="cursor-pointer flex flex-col items-center justify-center bg-red-800 text-white py-6 px-4 rounded-lg shadow hover:bg-red-700 transition"
-          >
-            <FiBell size={32} className="mb-2" />
-            <span>Tag Notifications</span>
           </button>
         </div>
       </main>
