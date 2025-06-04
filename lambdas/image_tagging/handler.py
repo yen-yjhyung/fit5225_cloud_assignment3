@@ -3,7 +3,7 @@ import boto3
 import os
 import tempfile
 from detect_wrapper import run_tagging
-from utils import upload_to_dynamodb
+from utils import generate_dynamodb_record
 
 s3_client = boto3.client("s3")
 
@@ -31,14 +31,14 @@ def lambda_handler(event, context):
             tmp_path = tmp_file.name
 
         # Run prediction
-        result = run_tagging(tmp_path, media_type)
+        tags = run_tagging(tmp_path, media_type)
 
-        # Add link to original S3 file
-        result["link"] = f"https://{bucket}.s3.amazonaws.com/{key}"
+
+        s3_url = f"https://{bucket}.s3.amazonaws.com/{key}"
 
         # Upload result to DynamoDB
-        upload_to_dynamodb(result)
-
+        result = generate_dynamodb_record(s3_url, tags, media_type )
+        
         return {
             "statusCode": 200,
             "body": json.dumps({"message": "Tagging complete", "result": result})
