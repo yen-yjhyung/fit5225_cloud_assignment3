@@ -17,6 +17,8 @@ def lambda_handler(event, context):
 
     if path == "/query" and method == "POST":
         return handle_query(event)
+    elif path == "/find" and method == "POST":
+        return handle_find(event)
     else:
         return {
             "statusCode": 404,
@@ -61,6 +63,54 @@ def handle_query(event):
 
     except Exception as e:
         print("handle_query error:", e)
+        return _response(500, {"message": "Internal Server Error", "error": str(e)})
+
+def handle_find(event):
+    """
+    Handle POST /find
+    Expects JSON body:
+      {
+        "species": ["crow", "pigeon", ...]
+      }
+    Returns all items where at least one tag.name matches any species in the list.
+    """
+    try:
+        body = json.loads(event.get("body", "{}"))
+        requested = body.get("species", [])
+        if not isinstance(requested, list) or len(requested) == 0:
+            return _response(400, {"message": "species must be a non-empty list of strings"})
+
+        # Normalize requested species to lowercase
+        requested_set = set([s.lower() for s in requested if isinstance(s, str)])
+
+        table = dynamodb.Table(TABLE_NAME)
+        # Scan entire table (for small volumes; use GSI/Query in production)
+        items = []
+        scan_kwargs = {}
+        done = False
+        last_evaluated_key = None
+
+        while not done:
+            if last_evaluated_key:
+                scan_kwargs["ExclusiveStartKey"] = last_evaluated_key
+            resp = table.scan(**scan_kwargs)
+            items.extend(resp.get("Items", []))
+            last_evaluated_key = resp.get("LastEvaluatedKey")
+            done = last_evaluated_key is None
+
+        # Filter: include an item if any tag.name appears in requested_set
+        def has_any_species(item):
+            for t in item.get("tags", []):
+                name = t.get("name", "").lower()
+                if name in requested_set:
+                    return True
+            return False
+
+        matched = [item for item in items if has_any_species(item)]
+        return _response(200, {"results": matched})
+
+    except Exception as e:
+        print("handle_find error:", e)
         return _response(500, {"message": "Internal Server Error", "error": str(e)})
 
 def _response(status_code, body_dict):
