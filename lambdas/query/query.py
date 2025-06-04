@@ -2,14 +2,17 @@ import json
 import os
 import boto3
 import base64
+import urllib.parse
 from datetime import datetime
 from boto3.dynamodb.conditions import Attr
+from botocore.exceptions import ClientError
 
 dynamodb = boto3.resource("dynamodb")
-s3 = boto3.client("s3")
-
 TABLE_NAME = os.environ.get("TABLE_NAME", "BirdMediaTags")
-BUCKET_NAME = os.environ.get("BUCKET_NAME", "my-birdtag-test-data")
+BUCKET_NAME = os.environ.get("BUCKET_NAME", "birdtagbucket-assfdas")
+REGION = os.environ.get("REGION", "us-east-1")
+
+s3_client = boto3.client("s3", region_name=REGION)
 
 def lambda_handler(event, context):
     path = event.get("rawPath") or event.get("path", "")
@@ -19,6 +22,8 @@ def lambda_handler(event, context):
         return handle_query(event)
     elif path == "/find" and method == "POST":
         return handle_find(event)
+    elif path == "/find-full-image" and method == "POST":
+            return handle_find_full_image(event)
     else:
         return {
             "statusCode": 404,
@@ -112,6 +117,62 @@ def handle_find(event):
     except Exception as e:
         print("handle_find error:", e)
         return _response(500, {"message": "Internal Server Error", "error": str(e)})
+
+def handle_find_full_image(event):
+    """
+    Extracts the thumbnail key from the presigned URL, infers the full-image key,
+    locates it in S3, and returns a new presigned URL for the full-size image.
+    """
+    try:
+        body = json.loads(event.get("body", "{}"))
+        thumbnail_url = body.get("thumbnailUrl")
+        if not thumbnail_url:
+            return _response(400, {"message": "thumbnailUrl is required"})
+
+        # Parse the incoming presigned URL to get the object key
+        parsed = urllib.parse.urlparse(thumbnail_url)
+        # parsed.path might be like "/thumbnails/xxx_thumb.jpg"
+        object_key = parsed.path.lstrip("/")  # e.g. "thumbnails/230a6c42-..._thumb.jpg"
+
+        # Verify that the key indeed lies under "thumbnails/"
+        if not object_key.startswith("thumbnails/") or not object_key.endswith("_thumb.jpeg"):
+            return _response(400, {"message": "Invalid thumbnail key or format"})
+
+        # Derive the base filename without "_thumb.jpg"
+        # e.g. "230a6c42-1757-4bbe-bf17-0ac1fb7ee252"
+        base_name = object_key[len("thumbnails/") : -len("_thumb.jpeg")]
+
+        # Now search for the corresponding full-size object under "images/" prefix
+        # We list objects with prefix "images/<base_name>"
+        prefix = f"images/{base_name}"
+
+        # List up to 5 keys under that prefix to find a match
+        resp = s3_client.list_objects_v2(
+            Bucket=BUCKET_NAME,
+            Prefix=prefix
+        )
+
+        # If no objects found, return 404
+        contents = resp.get("Contents", [])
+        if not contents:
+            return _response(404, {"message": "Full-size image not found"})
+
+        # Pick the first matching key (there should ideally be exactly one)
+        full_key = contents[0]["Key"]  # e.g. "images/230a6c42-1757-4bbe-bf17-0ac1fb7ee252.png"
+
+        # Generate a presigned URL for the full-size image (expiresIn seconds)
+        presigned_url = s3_client.generate_presigned_url(
+            ClientMethod="get_object",
+            Params={"Bucket": BUCKET_NAME, "Key": full_key},
+            ExpiresIn=3600  # URL valid for 1 hour
+        )
+
+        return _response(200, {"imageUrl": presigned_url})
+
+    except ClientError as e:
+        return _response(500, {"message": "S3 ClientError", "error": str(e)})
+    except Exception as e:
+        return _response(500, {"message": "Internal error", "error": str(e)})
 
 def _response(status_code, body_dict):
     return {
