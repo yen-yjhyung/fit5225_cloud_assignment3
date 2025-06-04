@@ -71,9 +71,9 @@ def image_prediction(image_path, result_filename=None, save_dir = "./image_predi
 
         # Save annotated image if requested
         if save_annotated and result_filename:
-            os.makedirs(save_dir, exist_ok=True)
-            save_path = os.path.join(save_dir, result_filename)
             try:
+                os.makedirs(save_dir, exist_ok=True)
+                save_path = os.path.join(save_dir, result_filename)
                 status = cv.imwrite(save_path, img)
                 print(f"Image save status = {status}.")
             except Exception as e:

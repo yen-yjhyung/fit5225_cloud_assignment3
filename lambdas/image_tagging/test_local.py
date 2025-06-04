@@ -20,10 +20,10 @@ if __name__ == "__main__":
     
     # Provide test file paths from /model/test_images or /test_videos
     # For audio
-    test_local_file("model/test_audio/soundscape.wav", "audio")
+    # test_local_file("model/test_audio/soundscape.wav", "audio")
 
     # For image
-    # test_local_file("model/test_images/crows_3.jpg", "image")
+    test_local_file("model/test_images/crows_3.jpg", "image")
 
     # For video
     # test_local_file("model/test_videos/crows.mp4", "video")
