@@ -55,3 +55,51 @@ s3://bird-bucket/
     ├── 230a6c42-1757-4bbe-bf17-0ac1fb7ee252_thumb.jpg  # same uuid from image file with 'thumb' surffix
     └── d6bd1fde-d347-4a69-b6a2-8792ac07e31e_thumb.jpg
 ```
+
+## DynamoDB Document Format
+```json
+{
+  "key": {
+    "S": "230a6c42-1757-4bbe-bf17-0ac1fb7ee252.png"
+  },
+  "bucket": {
+    "S": "birdtag-upload-bucket"
+  },
+  "size": {
+    "N": "82209"
+  },
+  "thumbnailKey": {
+    "S": "thumbnails/230a6c42-1757-4bbe-bf17-0ac1fb7ee252_thumb.jpg"
+  },
+  "type": {
+    "S": "image"
+  },
+  "format": {
+    "S": "png"
+  },
+  "tags": {
+    "L": [
+      {
+        "M": {
+          "count": {
+            "N": "2"
+          },
+          "name": {
+            "S": "crow"
+          }
+        }
+      },
+      {
+        "M": {
+          "count": {
+            "N": "1"
+          },
+          "name": {
+            "S": "pigeon"
+          }
+        }
+      }
+    ]
+  }
+}
+```
