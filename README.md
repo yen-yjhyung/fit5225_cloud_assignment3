@@ -34,3 +34,24 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## S3 File Structure
+```
+s3://bird-bucket/
+│
+├── images/
+│   ├── 230a6c42-1757-4bbe-bf17-0ac1fb7ee252.png
+│   └── d6bd1fde-d347-4a69-b6a2-8792ac07e31e.jpg
+│
+├── videos/
+│   ├── 9a8bbc1d-0c10-4e0e-8dfb-6d113fc62244.mp4
+│   └── 33486101-7ec4-483c-b981-2e64fbf1a8b8.avi
+│
+├── audios/
+│   ├── fd89b09f-4721-49df-8eb1-17b36ae0aac4.mp3
+│   └── 3602dc50-e500-4a6b-842d-6ddf72bdb035.mp3
+│
+└── thumbnails/
+    ├── 230a6c42-1757-4bbe-bf17-0ac1fb7ee252_thumb.jpg  # same uuid from image file with 'thumb' surffix
+    └── d6bd1fde-d347-4a69-b6a2-8792ac07e31e_thumb.jpg
+```
