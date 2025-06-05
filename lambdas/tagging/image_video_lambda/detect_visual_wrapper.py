@@ -1,13 +1,10 @@
 import os
-import uuid
-from birds_detection import image_prediction, video_prediction
-from birdnet_audio_wrapper import run_audio_prediction
-from datetime import datetime
+from birds_visual_detection import image_prediction, video_prediction
 
 def run_tagging(file_path: str, media_type: str):
     """
     file_path: path to the downloaded file from S3
-    media_type: one of 'image', 'video', or 'audio'
+    media_type: one of 'image' or 'video'
     """
 
     base_name = os.path.basename(file_path)
@@ -19,8 +16,8 @@ def run_tagging(file_path: str, media_type: str):
         tags = image_prediction(file_path, result_filename=f"{result_filename}{extension}")
     elif media_type == "video":
         tags = video_prediction(file_path, result_filename=result_filename, frame_skip=24)
-    elif media_type == "audio":
-        tags = run_audio_prediction(file_path)
+    # elif media_type == "audio":
+    #     tags = run_audio_prediction(file_path)
     else:
         raise ValueError(f"Unsupported media type: {media_type}")
 

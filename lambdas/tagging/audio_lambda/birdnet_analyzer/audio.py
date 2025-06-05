@@ -5,7 +5,7 @@ import numpy as np
 import soundfile as sf
 from scipy.signal import firwin, kaiserord, lfilter, find_peaks
 
-import model.birdnet_analyzer.config as cfg
+import birdnet_analyzer.config as cfg
 
 RANDOM = np.random.RandomState(cfg.RANDOM_SEED)
 

@@ -1,0 +1,23 @@
+#### VIDEO / IMAGE TAGGING REQUIREMENTS ####
+# Ultralytics YOLO (for image/video)
+ultralytics==8.1.25           # Compatible with Python 3.10, supports YOLOv5–v8
+supervision==0.13.0           # Optional but useful for visualization; can be excluded if unused
+
+# OpenCV (headless)
+opencv-python-headless==4.8.1.78   # Compatible with Python 3.10, smaller than full OpenCV
+
+# Plotting and scientific computing
+matplotlib==3.7.1,<4.0.0
+numpy==1.24.4                  # Last NumPy to support legacy behavior, stable with TF 2.9
+
+# Web interaction
+requests==2.31.0               # Most stable release for 2024+
+
+###### AUDIOT TAGGING REQUIREMENTS ######
+# Audio and ML support
+scipy==1.10.1                  # Compatible with Librosa and TF 2.9
+soundfile==0.12.1              # Uses libsndfile for audio I/O
+librosa==0.10.1                # Confirmed compatible with Python 3.10 and TF 2.9
+
+# TensorFlow for BirdNET
+tensorflow-cpu==2.9.1          # Last known version BirdNET works with in lightweight setup

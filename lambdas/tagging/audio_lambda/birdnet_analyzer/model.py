@@ -6,8 +6,8 @@ import warnings
 
 import numpy as np
 
-import model.birdnet_analyzer.config as cfg
-import model.birdnet_analyzer.utils as utils
+import birdnet_analyzer.config as cfg
+import birdnet_analyzer.utils as utils
 
 SCRIPT_DIR = os.path.abspath(os.path.dirname(__file__))
 

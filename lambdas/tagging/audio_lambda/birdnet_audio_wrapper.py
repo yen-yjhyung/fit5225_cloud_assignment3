@@ -1,8 +1,8 @@
 import os
 import uuid
 import datetime
-from model.birdnet_analyzer.analyze import utils as analyzer_utils
-from model.birdnet_analyzer import config as cfg
+from birdnet_analyzer.analyze import utils as analyzer_utils
+from birdnet_analyzer import config as cfg
 
 def run_audio_prediction(file_path: str):
 
@@ -13,8 +13,8 @@ def run_audio_prediction(file_path: str):
 
     output_file_path = os.path.join(output_dir, f"{file_basename}_detection.csv")
 
-    # Assume your .tflite and label files are in model
-    model_base_dir = os.path.join(os.path.dirname(__file__), "model")
+    # path where .tflite and label files are located
+    model_base_dir = os.path.dirname(__file__)
 
 
     config_dict = {

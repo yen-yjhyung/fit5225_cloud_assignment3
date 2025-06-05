@@ -6,7 +6,7 @@ import os
 import traceback
 from pathlib import Path
 
-import model.birdnet_analyzer.config as cfg
+import birdnet_analyzer.config as cfg
 
 SCRIPT_DIR = os.path.abspath(os.path.dirname(__file__))
 FROZEN = getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS")
@@ -54,7 +54,7 @@ def spectrogram_from_file(path, fig_num=None, fig_size=None, offset=0, duration=
     Returns:
     matplotlib.figure.Figure: The generated spectrogram figure.
     """
-    import model.birdnet_analyzer.audio as audio
+    import birdnet_analyzer.audio as audio
 
     # s, sr = librosa.load(path, offset=offset, duration=duration)
     s, sr = audio.open_audio_file(path, offset=offset, duration=duration, fmin=fmin, fmax=fmax, speed=speed)

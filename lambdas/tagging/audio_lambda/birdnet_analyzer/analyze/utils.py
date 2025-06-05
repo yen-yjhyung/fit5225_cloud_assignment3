@@ -7,10 +7,10 @@ import os
 
 import numpy as np
 
-import model.birdnet_analyzer.audio as audio
-import model.birdnet_analyzer.config as cfg
-import model.birdnet_analyzer.model as model
-import model.birdnet_analyzer.utils as utils
+import birdnet_analyzer.audio as audio
+import birdnet_analyzer.config as cfg
+import birdnet_analyzer.model as model
+import birdnet_analyzer.utils as utils
 
 #                    0       1      2           3             4              5               6                7           8             9           10         11
 RAVEN_TABLE_HEADER = "Selection\tView\tChannel\tBegin Time (s)\tEnd Time (s)\tLow Freq (Hz)\tHigh Freq (Hz)\tCommon Name\tSpecies Code\tConfidence\tBegin Path\tFile Offset (s)\n"
