@@ -15,7 +15,7 @@ s3_client = boto3.client("s3", region_name=REGION)
 def lambda_handler(event, context):
     try:
         record = event["Records"][0]
-        bucket = record["s3"]["bucket"]["name"]
+        bucket = BUCKET_NAME
         key = record["s3"]["object"]["key"]
         size = record["s3"]["object"]["size"]
 
