@@ -5,9 +5,11 @@ import boto3
 from botocore.exceptions import ClientError
 
 TABLE_NAME = os.environ.get("TABLE_NAME", "BirdMediaTags")
+BUCKET_NAME = os.environ.get("BUCKET_NAME", "birdtagbucket-assfdas")
 REGION     = os.environ.get("REGION", "us-east-1")
 
 dynamodb_client = boto3.client("dynamodb", region_name=REGION)
+s3_client = boto3.client("s3", region_name=REGION)
 
 def lambda_handler(event, context):
     """
@@ -31,6 +33,8 @@ def lambda_handler(event, context):
         path   = event.get("rawPath") or event.get("path", "")
         if path == "/update-tags" and method == "POST":
             return handle_update_tags(event)
+        elif path == "/delete-resource" and method == "POST":
+            return handle_delete_resource(event)
         else:
             return {
                 "statusCode": 404,
@@ -54,7 +58,6 @@ def handle_update_tags(event):
         operation  = body.get("operation", "").lower()
         tag_list   = body.get("tags", [])
 
-        # 1. 参数校验
         if not isinstance(url_list, list) or len(url_list) == 0:
             return _response(400, {"message": "\"url\" must be a non-empty list"})
         if operation not in ("add", "remove"):
@@ -143,6 +146,85 @@ def handle_update_tags(event):
 
     except ClientError as e:
         return _response(500, {"message": "DynamoDB ClientError", "error": str(e)})
+    except Exception as e:
+        return _response(500, {"message": "Internal error", "error": str(e)})
+
+def handle_delete_resource(event):
+    """
+    Processes the delete request:
+    1. Parse the incoming JSON body for "url" (presigned URL).
+    2. Extract S3 object key from that URL.
+    3. Scan DynamoDB for an item where "key" == extracted key.
+    4. If found:
+       - Delete the object from S3 by key.
+       - If type == "image", also delete the thumbnail in S3 (thumbnailKey).
+       - Delete the DynamoDB item by id.
+    5. Return success or appropriate error.
+    """
+    try:
+        body = json.loads(event.get("body", "{}"))
+        url  = body.get("url", "").strip()
+        if not url:
+            return _response(400, {"message": "\"url\" is required"})
+
+        # 1. Parse URL to get S3 object key, e.g. "images/uuid.jpg"
+        parsed = urllib.parse.urlparse(url)
+        object_key = parsed.path.lstrip("/")  # strip leading "/"
+
+        if not object_key:
+            return _response(400, {"message": "Invalid URL format"})
+
+        # 2. Scan DynamoDB for item where "key" equals this object_key
+        scan_resp = dynamodb_client.scan(
+            TableName=TABLE_NAME,
+            FilterExpression="#k = :k",
+            ExpressionAttributeNames={"#k": "key"},
+            ExpressionAttributeValues={":k": {"S": object_key}}
+        )
+        items = scan_resp.get("Items", [])
+        if not items:
+            return _response(404, {"message": "Resource not found in DynamoDB"})
+
+        # 3. Delete every match
+        deleted_records = []
+        for item in items:
+            item_id    = item["id"]["S"]
+            item_type  = item.get("type", {}).get("S", "")
+            thumb_key  = item.get("thumbnailKey", {}).get("S", "")
+
+            # 3.1. Delete main object from S3
+            try:
+                s3_client.delete_object(Bucket=BUCKET_NAME, Key=object_key)
+            except ClientError as e:
+                if e.response["Error"]["Code"] != "NoSuchKey":
+                    return _response(500, {"message": "Failed to delete S3 object", "error": str(e)})
+
+            # 3.2. If this item is an image and has a thumbnailKey, delete thumbnail
+            if item_type.lower() == "image" and thumb_key:
+                try:
+                    s3_client.delete_object(Bucket=BUCKET_NAME, Key=thumb_key)
+                except ClientError as e:
+                    if e.response["Error"]["Code"] != "NoSuchKey":
+                        return _response(500, {"message": "Failed to delete thumbnail", "error": str(e)})
+
+            # 3.3. Delete item from DynamoDB by primary key "id"
+            try:
+                dynamodb_client.delete_item(
+                    TableName=TABLE_NAME,
+                    Key={"id": {"S": item_id}}
+                )
+            except ClientError as e:
+                return _response(500, {"message": "Failed to delete DynamoDB record", "error": str(e)})
+
+            deleted_records.append(item_id)
+
+        return _response(200, {
+            "message": "Deleted resource successfully",
+            "deleted_ids": deleted_records
+        })
+
+    except ClientError as e:
+        return _response(500, {"message": "DynamoDB/S3 ClientError", "error": str(e)})
     except Exception as e:
         return _response(500, {"message": "Internal error", "error": str(e)})
 
