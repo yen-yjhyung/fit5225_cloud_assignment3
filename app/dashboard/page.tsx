@@ -6,6 +6,7 @@ import { FaTags } from "react-icons/fa";
 import { signOut } from "@/lib/auth";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Tokens, useAuthTokens } from "@/hooks/useAuthTokens";
+import Navbar from "@/components/Navbar";
 
 export default function Dashboard() {
   const router = useRouter();
@@ -36,28 +37,11 @@ export default function Dashboard() {
       className="flex flex-col min-h-screen bg-cover bg-center bg-no-repeat px-4 py-6 pt-28"
       style={{ backgroundImage: "url('/bird_picture.jpg')" }}
     >
-      <nav className="fixed top-0 left-0 w-full z-50 flex justify-between items-center bg-white/90 backdrop-blur-md px-6 py-4 shadow-md">
-        <div className="cursor-pointer flex items-center gap-2" onClick={() => handleNavigation("/dashboard")}>
-          <img src="/bird.png" alt="BirdTag Logo" className="w-10 h-10" />
-          <h1 className="text-xl font-bold">BirdTag</h1>
-        </div>
-        <div className="flex gap-8 items-center">
-          <button
-            onClick={() => handleNavigation("/profile")}
-            className="hover:text-red-800 flex items-center gap-1 cursor-pointer"
-          >
-            <FiUser size={18} />
-            {tokens?.name}
-          </button>
-          <button
-            onClick={() => handleLogout()}
-            className="hover:text-red-800 flex items-center gap-1 cursor-pointer"
-          >
-            <FiLogOut size={18} />
-            Logout
-          </button>
-        </div>
-      </nav>
+      <Navbar
+        onNavigate={handleNavigation}
+        onLogout={handleLogout}
+        username={tokens?.name}
+      />
 
       <div className="absolute inset-0 bg-white/8 z-0" />
 
