@@ -7,14 +7,12 @@
 from ultralytics import YOLO
 import supervision as sv
 import cv2 as cv
-import numpy as np
-import matplotlib.pyplot as plt
 import os
 from collections import defaultdict
 
 ENV = os.getenv("ENV", "prod") # default to prod if ENV is not set
 
-def image_prediction(image_path, result_filename=None, save_dir = "./image_prediction_results", confidence=0.5, model="./model.pt"):
+def image_prediction(image_path, result_filename=None, save_dir="./image_prediction_results", confidence=0.5, model="./model.pt"):
     """
     Function to display predictions of a pre-trained YOLO model on a given image.
 
@@ -136,8 +134,8 @@ def video_prediction(video_path, result_filename=None, save_dir = "./video_predi
                                         text_position=sv.Position.TOP_LEFT)
 
     if save_annotated and result_filename:
-        os.makedirs("video_prediction_results", exist_ok=True)
-        output_path = os.path.join("video_prediction_results", f"{result_filename}.mp4")
+        os.makedirs(save_dir, exist_ok=True)
+        output_path = os.path.join(save_dir, f"{result_filename}.mp4")
         out_writer = cv.VideoWriter(output_path, fourcc, fps, (width, height))
 
     tag_max_counts = {}
