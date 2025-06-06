@@ -17,7 +17,7 @@ if ENV == "dev":
     import supervision as sv
 
 def image_prediction(image_path, result_filename=None, save_dir="./image_prediction_results", confidence=0.5, model="./model.pt"):
-    """
+    """p
     Function to display predictions of a pre-trained YOLO model on a given image.
 
     Parameters:

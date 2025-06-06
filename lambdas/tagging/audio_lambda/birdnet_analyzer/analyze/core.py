@@ -65,10 +65,10 @@ def analyze(
     """
     from multiprocessing import Pool
 
-    import model.birdnet_analyzer.config as cfg
-    from model.birdnet_analyzer.analyze.utils import analyze_file, save_analysis_params
-    from model.birdnet_analyzer.analyze.utils import combine_results as combine
-    from model.birdnet_analyzer.utils import ensure_model_exists
+    import birdnet_analyzer.config as cfg
+    from birdnet_analyzer.analyze.utils import analyze_file, save_analysis_params
+    from birdnet_analyzer.analyze.utils import combine_results as combine
+    from birdnet_analyzer.utils import ensure_model_exists
 
     ensure_model_exists()
 
@@ -153,10 +153,10 @@ def _set_params(
     threads,
     labels_file=None,
 ):
-    import model.birdnet_analyzer.config as cfg
-    from model.birdnet_analyzer.analyze.utils import load_codes  # noqa: E402
-    from model.birdnet_analyzer.species.utils import get_species_list
-    from model.birdnet_analyzer.utils import collect_audio_files, read_lines
+    import birdnet_analyzer.config as cfg
+    from birdnet_analyzer.analyze.utils import load_codes  # noqa: E402
+    # from birdnet_analyzer.species.utils import get_species_list
+    from birdnet_analyzer.utils import collect_audio_files, read_lines
 
     cfg.CODES = load_codes()
     cfg.LABELS = read_lines(labels_file if labels_file else cfg.LABELS_FILE)

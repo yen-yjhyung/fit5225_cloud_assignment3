@@ -1,6 +1,4 @@
 import os
-import uuid
-import datetime
 from birdnet_analyzer.analyze import utils as analyzer_utils
 from birdnet_analyzer import config as cfg
 

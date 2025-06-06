@@ -1,6 +1,5 @@
 import os
 from birdnet_audio_wrapper import run_audio_prediction
-from datetime import datetime
 
 def run_audio_tagging(file_path: str, media_type: str):
     """
