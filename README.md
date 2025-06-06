@@ -59,8 +59,11 @@ s3://bird-bucket/
 ## DynamoDB Document Format
 ```json
 {
+  "id": {
+    "S": "230a6c42-1757-4bbe-bf17-0ac1fb7ee252"
+  },
   "key": {
-    "S": "230a6c42-1757-4bbe-bf17-0ac1fb7ee252.png"
+    "S": "images/230a6c42-1757-4bbe-bf17-0ac1fb7ee252.png"
   },
   "bucket": {
     "S": "birdtag-upload-bucket"
@@ -69,7 +72,7 @@ s3://bird-bucket/
     "N": "82209"
   },
   "thumbnailKey": {
-    "S": "thumbnails/230a6c42-1757-4bbe-bf17-0ac1fb7ee252_thumb.jpg"
+    "S": "thumbnails/230a6c42-1757-4bbe-bf17-0ac1fb7ee252_thumb.jpeg"
   },
   "type": {
     "S": "image"
