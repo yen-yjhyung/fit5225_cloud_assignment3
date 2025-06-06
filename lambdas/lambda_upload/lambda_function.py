@@ -27,8 +27,17 @@ def lambda_handler(event, context):
         ext = ext.replace(".", "")
         mime_type_main = content_type.split('/')[0]
 
-        key = f"images/{file_id}.{ext}"
-        thumbnail_key = f"thumbnails/{file_id}_thumb.jpeg"
+        if mime_type_main == 'image':
+            folder = 'images/'
+        elif mime_type_main == 'video':
+            folder = 'videos/'
+        elif mime_type_main == 'audio':
+            folder = 'audios/'
+
+        key = f"{folder}{file_id}.{ext}"
+
+        thumbnail_key = f"thumbnails/{file_id}_thumb.jpeg" if mime_type_main == 'image' else ''
+
 
         s3.put_object(
             Bucket=BUCKET_NAME,
@@ -52,7 +61,7 @@ def lambda_handler(event, context):
         lambda_payload = {
             "bucket": BUCKET_NAME,
             "key": key,
-            "id": file_id,
+            "fileId": file_id,
             "size": len(decoded),
             "type": mime_type_main,
             "format": ext,

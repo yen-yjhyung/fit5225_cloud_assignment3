@@ -4,6 +4,11 @@
 import { useState } from "react";
 import { FiUpload } from "react-icons/fi";
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import Navbar from "@/components/Navbar";
+import { useRouter } from "next/navigation";
+import { useAuthTokens, Tokens } from "@/hooks/useAuthTokens";
+import { signOut } from "@/lib/auth";
+
 
 
 export default function UploadPage() {
@@ -11,6 +16,9 @@ export default function UploadPage() {
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
+  const tokens: Tokens = useAuthTokens();
+  
 
   const { checking } = useCurrentUser();
   
@@ -23,6 +31,15 @@ export default function UploadPage() {
       </div>
     );
 
+
+  const handleNavigation = (path: string) => {
+    router.push(path);
+  };
+
+  const handleLogout = () => {
+    signOut();
+    router.push('/auth/login');
+  };
   
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -41,7 +58,7 @@ export default function UploadPage() {
     const fileName = file.name;
 
     try {
-  const res = await fetch("https://layhjlwerh.execute-api.us-east-1.amazonaws.com/prod/upload", {
+  const res = await fetch("https://obadhri1sg.execute-api.us-east-1.amazonaws.com/prod/upload", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ file: base64, fileName }),
@@ -50,6 +67,7 @@ export default function UploadPage() {
   const text = await res.text();
   if (!res.ok) throw new Error(`API ${res.status}: ${text}`);
   setStatus("Upload successful!");
+  setFile(null);
 
 } catch (err: any) {
   console.error(err);
@@ -77,6 +95,11 @@ const toBase64 = (file: File): Promise<string> => {
       className="flex items-center justify-center min-h-screen bg-gray-100 px-4 bg-no-repeat bg-cover bg-center"
       style={{ backgroundImage: "url('/bird_picture.jpg')" }}
     >
+      <Navbar
+        onNavigate={handleNavigation}
+        onLogout={handleLogout}
+        username={tokens?.name}
+      />
       <form
         onSubmit={handleSubmit}
         className="relative z-10 w-full max-w-sm rounded-lg bg-white/90 p-8 shadow-xl backdrop-blur"
@@ -122,8 +145,16 @@ const toBase64 = (file: File): Promise<string> => {
   </button>
 
   {status && (
-    <p className="text-sm text-center mt-4 text-gray-700">{status}</p>
-  )}
+  <p
+    className={`text-sm text-center mt-4 font-medium ${
+      status.toLowerCase().includes("success")
+        ? "text-green-700"
+        : "text-red-600"
+    }`}
+  >
+    {status}
+  </p>
+)}
 </div>
 
       </form>

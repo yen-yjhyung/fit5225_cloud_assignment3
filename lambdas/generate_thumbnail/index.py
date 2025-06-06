@@ -1,72 +1,72 @@
-import json
 import boto3
 import os
+import tempfile
 import cv2
-import urllib.parse
+import uuid
+import json
+from urllib.parse import unquote_plus
 
 s3 = boto3.client('s3')
 dynamodb = boto3.resource('dynamodb')
-TABLE_NAME = 'FileMetadata'
+lambda_client = boto3.client('lambda')
 
-def handler(event, context):
-    print("Received event:", json.dumps(event))
+TABLE_NAME = os.environ['TABLE_NAME']
+THUMBNAIL_FOLDER = 'thumbnails/'
 
-    for record in event['Records']:
+def lambda_handler(event, context):
+    try:
+        print("Event received:", event)
+
+        record = event['Records'][0]
         bucket = record['s3']['bucket']['name']
-        key = urllib.parse.unquote_plus(record['s3']['object']['key'])
+        key = unquote_plus(record['s3']['object']['key'])
 
-        if key.startswith("thumbnails/"):
-            print("Skipping thumbnail file to avoid recursion.")
-            continue
+        if not key.startswith("images/"):
+            print("Not an image upload. Skipping.")
+            return {'statusCode': 200, 'body': 'Not an image.'}
 
-        filename = os.path.basename(key)
-        download_path = f"/tmp/{filename}"
-        thumbnail_path = f"/tmp/thumb-{filename}"
-        thumbnail_key = f"thumbnails/{filename}"
+        file_id = key.split('/')[-1].split('.')[0]
 
-        try:
-            # Download original image from S3
-            s3.download_file(bucket, key, download_path)
+        download_path = f"/tmp/{uuid.uuid4()}.jpg"
+        s3.download_file(bucket, key, download_path)
 
-            # Generate thumbnail using OpenCV
-            img = cv2.imread(download_path)
-            height, width = img.shape[:2]
+        image = cv2.imread(download_path)
+        thumbnail = cv2.resize(image, (128, 128))
 
-            if height > width:
-                new_height = 200
-                new_width = int((200 / height) * width)
-            else:
-                new_width = 200
-                new_height = int((200 / width) * height)
+        thumbnail_filename = f"{file_id}_thumb.jpeg"
+        thumbnail_path = f"/tmp/{thumbnail_filename}"
+        cv2.imwrite(thumbnail_path, thumbnail)
 
-            resized = cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_AREA)
-            cv2.imwrite(thumbnail_path, resized)
+        thumbnail_key = f"{THUMBNAIL_FOLDER}{thumbnail_filename}"
+        s3.upload_file(thumbnail_path, bucket, thumbnail_key, ExtraArgs={'ContentType': 'image/jpeg'})
 
-            # Upload thumbnail to S3
-            s3.upload_file(thumbnail_path, bucket, thumbnail_key)
+        table = dynamodb.Table(TABLE_NAME)
+        table.update_item(
+            Key={'fileId': file_id},
+            UpdateExpression='SET thumbnailKey = :thumb',
+            ExpressionAttributeValues={':thumb': thumbnail_key}
+        )
 
-            # Get metadata of original image
-            head = s3.head_object(Bucket=bucket, Key=key)
-            file_size = head['ContentLength']
-            content_type = head['ContentType']
+        file_size = os.path.getsize(download_path)
+        lambda_payload = {
+            "bucket": bucket,
+            "key": key,
+            "fileId": file_id,
+            "size": file_size,
+            "type": "image",
+            "format": key.lower().split('.')[-1],
+            "thumbnailKey": thumbnail_key
+        }
 
-            # Save metadata to DynamoDB
-            table = dynamodb.Table(TABLE_NAME)
-            table.put_item(Item={
-                'fileId': key,
-                'bucket': bucket,
-                'type': content_type,
-                'size': file_size,
-                'thumbnailKey': thumbnail_key
-            })
+        lambda_client.invoke(
+            FunctionName='birdtag-visual-lambda',  
+            InvocationType='Event',
+            Payload=json.dumps(lambda_payload)
+        )
 
-            print(f"Processed & saved metadata for {key}")
+        return {'statusCode': 200, 'body': 'Thumbnail created and tagging triggered.'}
 
-        except Exception as e:
-            print(f"Error processing {key}: {str(e)}")
-            raise e
 
-    return {
-        'statusCode': 200,
-        'body': json.dumps('Success!')
-    }
+    except Exception as e:
+        print("Error generating thumbnail:", str(e))
+        return {'statusCode': 500, 'body': f"Error: {str(e)}"}
