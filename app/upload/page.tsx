@@ -1,31 +1,76 @@
 'use client';
 
+
 import { useState } from "react";
 import { FiUpload } from "react-icons/fi";
+import { useCurrentUser } from '@/hooks/useCurrentUser';
+
 
 export default function UploadPage() {
+  
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const { checking } = useCurrentUser();
+  
+  if (checking)
+    return (
+      <div>
+        <h1 className="text-center text-2xl font-bold mt-20">
+          Checking Session...
+        </h1>
+      </div>
+    );
+
+  
+
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setStatus("");
+  e.preventDefault();
+  setStatus("");
 
-    if (!file) {
-      setStatus("Please select a file.");
-      return;
-    }
+  if (!file) {
+    setStatus("Please select a file.");
+    return;
+  }
 
-    setLoading(true);
+  setLoading(true);
 
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+  try {
+    const base64 = await toBase64(file);
+    const fileName = file.name;
 
-    setStatus("File upload simulated successfully!");
-    setFile(null);
-    setLoading(false);
-  };
+    try {
+  const res = await fetch("https://layhjlwerh.execute-api.us-east-1.amazonaws.com/prod/upload", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ file: base64, fileName }),
+  });
+
+  const text = await res.text();
+  if (!res.ok) throw new Error(`API ${res.status}: ${text}`);
+  setStatus("Upload successful!");
+
+} catch (err: any) {
+  console.error(err);
+  setStatus("Upload failed: " + err.message);
+}
+  } catch (err: any) {
+    console.error(err);
+    setStatus("Upload failed: " + err.message);
+  }
+
+  setLoading(false);
+};
+
+const toBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+  });
+};
 
   return (
     <div
@@ -59,6 +104,7 @@ export default function UploadPage() {
     <input
       id="file-upload"
       type="file"
+      accept="image/*,audio/*,video/*"
       onChange={(e) => setFile(e.target.files?.[0] || null)}
       className="hidden"
     />

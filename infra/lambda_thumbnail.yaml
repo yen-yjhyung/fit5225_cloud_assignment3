@@ -4,11 +4,14 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: GenerateThumbnail
-      Handler: index.handler
+      Handler: index.lambda_handler
       Runtime: python3.9
       Role: arn:aws:iam::037043828794:role/LabRole
       Code:
         S3Bucket: birdtag-upload-bucket
-        S3Key: generate-thumbnail.zip
+        S3Key: generate_thumbnail.zip
       Timeout: 10
       MemorySize: 128
+      Environment:
+      Variables:
+        TABLE_NAME: FileMetadata
