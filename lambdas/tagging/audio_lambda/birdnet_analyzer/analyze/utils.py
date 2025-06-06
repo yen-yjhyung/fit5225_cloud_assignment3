@@ -617,7 +617,7 @@ def analyze_file(item):
         fileLengthSeconds = int(audio.get_audio_file_length(fpath) / cfg.AUDIO_SPEED)
     except Exception as ex:
         # Write error log
-        print(f"Error: Cannot analyze audio file {fpath}. File corrupt?\n", flush=True)
+        print(f"Error analyzing {fpath}: {ex}", flush=True)
         utils.write_error_log(ex)
 
         return None
@@ -626,6 +626,7 @@ def analyze_file(item):
     try:
         while offset < fileLengthSeconds:
             chunks = get_raw_audio_from_file(fpath, offset, duration)
+            print(f"[Audio] chunks: {chunks}")
             samples = []
             timestamps = []
 
@@ -674,7 +675,7 @@ def analyze_file(item):
 
     except Exception as ex:
         # Write error log
-        print(f"Error: Cannot analyze audio file {fpath}.\n", flush=True)
+        print(f"Error: Cannot analyze audio file {fpath}. Cause: {ex} \n", flush=True)
         utils.write_error_log(ex)
 
         return None

@@ -1,4 +1,5 @@
 import os
+import tempfile
 
 SCRIPT_DIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -219,7 +220,11 @@ CODES = {}
 LABELS: list[str] = []
 TRANSLATED_LABELS: list[str] = []
 SPECIES_LIST: list[str] = []
-ERROR_LOG_FILE: str = os.path.join(SCRIPT_DIR, "error_log.txt")
+# ERROR_LOG_FILE: str = os.path.join(SCRIPT_DIR, "error_log.txt")
+if os.access(SCRIPT_DIR, os.W_OK):
+    ERROR_LOG_FILE = os.path.join(SCRIPT_DIR, "/birdnet_analyzer/error_log.txt")
+else:
+    ERROR_LOG_FILE = os.path.join(tempfile.gettempdir(), "error_log.txt")
 FILE_LIST = []
 FILE_STORAGE_PATH: str = ""
 

@@ -3,13 +3,12 @@ import boto3
 import os
 from detect_audio_wrapper import run_audio_tagging
 from utils import generate_dynamodb_record
+import soundfile as sf
 
 TABLE_NAME = os.environ.get("TABLE_NAME", "FileMetadata")
 REGION = os.environ.get("REGION", "us-east-1")
 print(f"Using DynamoDB table: {TABLE_NAME} in region: {REGION}")
 dynamodb = boto3.resource("dynamodb", region_name=REGION)
-s3_client = boto3.client("s3", region_name=REGION)
-
 s3_client = boto3.client("s3", region_name=REGION)
 
 # Lambda_handler.V3
@@ -32,10 +31,18 @@ def lambda_handler(event, context):
         print(f"Downloading from S3: s3://{bucket}/{key} to {local_path}")
         s3 = boto3.client("s3")
         s3.download_file(bucket, key, local_path)
+        print(f"Downloaded file size: {os.path.getsize(local_path)} bytes")
         print("File downloaded successfully.")
 
+        # Check if audio is readable
+        try:
+            info = sf.info(local_path)
+            print("Audio file info:", info)
+        except Exception as e:
+            print("soundfile could not read audio:", str(e))
+
         # Run tagging
-        print("Running visual tagging...")
+        print("Running audio tagging...")
         result = run_audio_tagging(local_path, media_type)
         tags = result.get("tags", [])
         print(f"Tags generated: {json.dumps(tags, indent=2)}")
