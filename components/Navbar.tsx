@@ -38,7 +38,7 @@ export default function Navbar({
         <NavItem
           label="Manage"
           icon={<FaTags size={18} />}
-          onClick={() => onNavigate("/manage")}
+          onClick={() => onNavigate("/resource-management")}
         />
         <NavItem
           label={username || "Profile"}

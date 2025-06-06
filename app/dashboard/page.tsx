@@ -62,11 +62,11 @@ export default function Dashboard() {
             <span>Query Media</span>
           </button>
           <button
-            onClick={() => handleNavigation("/tags")}
+            onClick={() => handleNavigation("/resource-management")}
             className="cursor-pointer flex flex-col items-center justify-center bg-red-800 text-white py-6 px-4 rounded-lg shadow hover:bg-red-700 transition"
           >
             <FaTags size={32} className="mb-2" />
-            <span>Manage Tags</span>
+            <span>Manage Resource</span>
           </button>
         </div>
       </main>
