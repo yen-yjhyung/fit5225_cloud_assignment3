@@ -1,60 +1,125 @@
 import json
 import boto3
 import os
-import tempfile
-from detect_audio_wrapper import run_tagging
+from detect_audio_wrapper import run_audio_tagging
 from utils import generate_dynamodb_record
 
-dynamodb = boto3.resource("dynamodb")
-TABLE_NAME = os.environ.get("TABLE_NAME", "BirdMediaTags")
-BUCKET_NAME = os.environ.get("BUCKET_NAME", "birdtagbucket-assfdas")
+TABLE_NAME = os.environ.get("TABLE_NAME", "FileMetadata")
 REGION = os.environ.get("REGION", "us-east-1")
+print(f"Using DynamoDB table: {TABLE_NAME} in region: {REGION}")
+dynamodb = boto3.resource("dynamodb", region_name=REGION)
+s3_client = boto3.client("s3", region_name=REGION)
 
 s3_client = boto3.client("s3", region_name=REGION)
 
+# Lambda_handler.V3
 def lambda_handler(event, context):
+    local_path = None
+
     try:
-        record = event["Records"][0]
-        bucket = BUCKET_NAME
-        key = record["s3"]["object"]["key"]
-        size = record["s3"]["object"]["size"]
+        print("Event received:", json.dumps(event, indent=2))
+        
+        bucket = event["bucket"]
+        key = event["key"]
+        file_id = event["fileId"]
+        size = event["size"]
+        media_type = event["type"]
+        format_ = event["format"]
+        thumbnail_key = event.get("thumbnailKey")  # Optional
 
-        extension = key.lower().split(".")[-1]
-        if extension in ["jpg", "jpeg", "png", "bmp"]:
-            media_type = "image"
-        elif extension in ["mp4", "mov", "avi", "mkv"]:
-            media_type = "video"
-        elif extension in ["wav", "mp3", "flac"]:
-            media_type = "audio"
-        else:
-            raise ValueError(f"Unsupported file extension: {extension}")
+        # Download file
+        local_path = f"/tmp/{os.path.basename(key)}"
+        print(f"Downloading from S3: s3://{bucket}/{key} to {local_path}")
+        s3 = boto3.client("s3")
+        s3.download_file(bucket, key, local_path)
+        print("File downloaded successfully.")
 
-        # Download S3 file
-        with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
-            s3_client.download_fileobj(bucket, key, tmp_file)
-            tmp_path = tmp_file.name
+        # Run tagging
+        print("Running visual tagging...")
+        result = run_audio_tagging(local_path, media_type)
+        tags = result.get("tags", [])
+        print(f"Tags generated: {json.dumps(tags, indent=2)}")
 
-        tags = run_tagging(tmp_path, media_type)
+        # Generate DynamoDB record
+        print("Generating DynamoDB record...")
+        record = generate_dynamodb_record(
+            bucket=bucket,
+            file_id=file_id,
+            key=key,
+            size=size,
+            media_type=media_type,
+            extension=format_,
+            tags=tags,
+            thumbnail_key=thumbnail_key
+        )
+        print("DynamoDB record to insert:", json.dumps(record, indent=2))
 
-        # If image, construct thumbnail key
-        thumbnail_key = f"thumbnails/{key.rsplit('.',1)[0]}_thumb.jpg" if media_type == "image" else None
-
-        item = generate_dynamodb_record(bucket, key, size, media_type, extension, tags["tags"], thumbnail_key)
-
-        dynamodb.put_item(TableName=TABLE_NAME, Item=item)
-
+        # dynamodb.put_item(TableName=TABLE_NAME, Item=record)
+        table = dynamodb.Table(TABLE_NAME)
+        response = table.put_item(Item=record)
+        print("DynamoDB response:", response)
+        print("Record inserted into DynamoDB.")
         return {
             "statusCode": 200,
-            "body": json.dumps({"message": "Tagging complete", "key": key})
+            "body": json.dumps({"message": "Success", "tags": tags})
         }
 
     except Exception as e:
+        print("Error occurred:", str(e))
         return {
             "statusCode": 500,
             "body": json.dumps({"error": str(e)})
         }
+    finally:
+        # Optional cleanup
+        if local_path and os.path.exists(local_path):
+            os.remove(local_path)
+            print(f"Temp file removed: {local_path}")
 
+# Lambda_handler.V2
+# def lambda_handler(event, context):
+#     try:
+#         record = event["Records"][0]
+#         bucket = BUCKET_NAME
+#         key = record["s3"]["object"]["key"]
+#         size = record["s3"]["object"]["size"]
 
+#         extension = key.lower().split(".")[-1]
+#         if extension in ["jpg", "jpeg", "png", "bmp"]:
+#             media_type = "image"
+#         elif extension in ["mp4", "mov", "avi", "mkv"]:
+#             media_type = "video"
+#         elif extension in ["wav", "mp3", "flac"]:
+#             media_type = "audio"
+#         else:
+#             raise ValueError(f"Unsupported file extension: {extension}")
+
+#         # Download S3 file
+#         with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+#             s3_client.download_fileobj(bucket, key, tmp_file)
+#             tmp_path = tmp_file.name
+
+#         tags = run_audio_tagging(tmp_path, media_type)
+
+#         # If image, construct thumbnail key
+#         thumbnail_key = f"thumbnails/{key.rsplit('.',1)[0]}_thumb.jpg" if media_type == "image" else None
+
+#         item = generate_dynamodb_record(bucket, key, size, media_type, extension, tags["tags"], thumbnail_key)
+
+#         dynamodb.put_item(TableName=TABLE_NAME, Item=item)
+
+#         return {
+#             "statusCode": 200,
+#             "body": json.dumps({"message": "Tagging complete", "key": key})
+#         }
+
+#     except Exception as e:
+#         return {
+#             "statusCode": 500,
+#             "body": json.dumps({"error": str(e)})
+#         }
+
+# Lambda_handler.V1
 # def lambda_handler(event, context):
 #     try:
 #         # Extract bucket & key

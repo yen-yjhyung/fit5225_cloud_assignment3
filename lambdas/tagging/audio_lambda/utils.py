@@ -14,7 +14,7 @@ import os
 #         "uploadedAt": datetime.now().strftime("%d-%m-%Y %H:%M:%S")
 #     }
 
-def generate_dynamodb_record(bucket, key, size, media_type, format_, tags, thumbnail_key=None):
+def generate_dynamodb_record(bucket, file_id, key, size, media_type, format_, tags, thumbnail_key=None):
     tag_list = [
         {
             "M": {
@@ -25,6 +25,7 @@ def generate_dynamodb_record(bucket, key, size, media_type, format_, tags, thumb
     ]
 
     item = {
+        "id": {"S": file_id},
         "key": {"S": key},
         "bucket": {"S": bucket},
         "size": {"N": str(size)},
