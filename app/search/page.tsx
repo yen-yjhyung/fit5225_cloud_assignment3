@@ -6,6 +6,7 @@ import { signOut } from '@/lib/auth';
 import { useState, FormEvent } from 'react';
 import { useAuthTokens, Tokens } from '@/hooks/useAuthTokens';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import Navbar from '@/components/Navbar';
 
 type ApiItem = {
     id: string;
@@ -29,22 +30,8 @@ type SpeciesFilter = {
 };
 
 export default function SearchPage() {
+
     const router = useRouter();
-
-    // Retrieve tokens from Cognito via custom hook
-    const tokens: Tokens = useAuthTokens();
-
-    // Check if user session is valid
-    const { checking } = useCurrentUser();
-          
-    if (checking)
-    return (
-        <div>
-        <h1 className="text-center text-2xl font-bold mt-20">
-            Checking Session...
-        </h1>
-        </div>
-    );
 
     // Input fields for adding species filters
     const [inputSpeciesName, setInputSpeciesName] = useState('');
@@ -67,8 +54,27 @@ export default function SearchPage() {
         'images'
     );
 
+    // Retrieve tokens from Cognito via custom hook
+    const tokens: Tokens = useAuthTokens();
+
+    // Check if user session is valid
+    const { checking } = useCurrentUser();
+          
+    if (checking)
+    return (
+        <div>
+        <h1 className="text-center text-2xl font-bold mt-20">
+            Checking Session...
+        </h1>
+        </div>
+    );
+
     // Base URL of your API Gateway (no trailing slash)
     const API_BASE = process.env.NEXT_PUBLIC_API_URL;
+
+    const handleNavigation = (path: string) => {
+        router.push(path);
+    };
 
     const handleLogout = () => {
         signOut();
@@ -163,28 +169,11 @@ export default function SearchPage() {
             style={{ backgroundImage: "url('/bird_picture.jpg')" }}
         >
             {/* Top Navigation */}
-            <nav className="fixed top-0 left-0 w-full z-50 flex justify-between items-center bg-white/90 backdrop-blur-md px-6 py-4 shadow-md">
-                <div className="flex items-center gap-2">
-                    <img src="/bird.png" alt="BirdTag Logo" className="w-10 h-10" />
-                    <h1 className="text-xl font-bold">BirdTag</h1>
-                </div>
-                <div className="flex gap-8 items-center">
-                    <button
-                        onClick={() => router.push('/profile')}
-                        className="hover:text-red-800 flex items-center gap-1 cursor-pointer"
-                    >
-                        <FiUser size={18} />
-                        {tokens.name}
-                    </button>
-                    <button
-                        onClick={handleLogout}
-                        className="hover:text-red-800 flex items-center gap-1 cursor-pointer"
-                    >
-                        <FiLogOut size={18} />
-                        Logout
-                    </button>
-                </div>
-            </nav>
+            <Navbar
+                onNavigate={handleNavigation}
+                onLogout={handleLogout}
+                username={tokens?.name}
+            />
 
             {/* Semi‐transparent Overlay */}
             <div className="absolute inset-0 bg-white/8 z-0" />
