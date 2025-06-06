@@ -1,0 +1,79 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  LambdaZipBucket:
+    Type: String
+    Description: S3 bucket that contains your zipped Lambda code
+
+  LambdaZipKey:
+    Type: String
+    Description: Key of the zipped Lambda code in the S3 bucket
+
+  UploadBucketName:
+    Type: String
+    Description: The S3 bucket to upload files to
+
+Resources:
+  UploadLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: UploadFileToS3
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.12
+      Role: arn:aws:iam::037043828794:role/LabRole  
+      Code:
+        S3Bucket: !Ref LambdaZipBucket
+        S3Key: !Ref LambdaZipKey
+      Timeout: 10
+      MemorySize: 128
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref UploadBucketName
+          TABLE_NAME: FileMetadata
+
+  UploadApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: UploadFileAPI
+
+  UploadApiResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref UploadApi
+      ParentId: !GetAtt UploadApi.RootResourceId
+      PathPart: upload
+
+  UploadApiMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref UploadApi
+      ResourceId: !Ref UploadApiResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri:
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UploadLambdaFunction.Arn}/invocations
+    
+
+  LambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref UploadLambdaFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${UploadApi}/*/POST/upload
+
+  UploadApiDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn: UploadApiMethod
+    Properties:
+      RestApiId: !Ref UploadApi
+      StageName: prod
+
+Outputs:
+  UploadEndpoint:
+    Description: "API Gateway endpoint for uploading files"
+    Value:
+      Fn::Sub: https://${UploadApi}.execute-api.${AWS::Region}.amazonaws.com/prod/upload
