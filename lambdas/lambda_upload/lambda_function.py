@@ -7,6 +7,7 @@ import json
 
 s3 = boto3.client('s3')
 dynamodb = boto3.resource('dynamodb')
+lambda_client = boto3.client('lambda')
 
 BUCKET_NAME = os.environ['BUCKET_NAME']
 TABLE_NAME = os.environ['TABLE_NAME']
@@ -47,6 +48,32 @@ def lambda_handler(event, context):
             'format': ext,
             'tags': []  # will be updated later
         })
+
+        lambda_payload = {
+            "bucket": BUCKET_NAME,
+            "key": key,
+            "id": file_id,
+            "size": len(decoded),
+            "type": mime_type_main,
+            "format": ext,
+            "thumbnailKey": thumbnail_key
+        }
+
+        # Conditionally invoke the correct Lambda
+        if mime_type_main == 'video':
+            target_lambda = "birdtag-visual-lambda"
+        elif mime_type_main == 'audio':
+            target_lambda = "birdtag-audio-lambda"
+        else:
+            target_lambda = None
+
+        if target_lambda:
+            lambda_client.invoke(
+                FunctionName=target_lambda,
+                InvocationType='Event',
+                Payload=json.dumps(lambda_payload)
+            )
+            print(f"Invoked {target_lambda} for {file_name}")
 
         return {
             'statusCode': 200,
