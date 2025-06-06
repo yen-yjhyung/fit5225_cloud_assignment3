@@ -617,14 +617,14 @@ def analyze_file(item):
         fileLengthSeconds = int(audio.get_audio_file_length(fpath) / cfg.AUDIO_SPEED)
     except Exception as ex:
         # Write error log
-        print(f"Error analyzing {fpath}: {ex}", flush=True)
+        print(f"Error analyzing {fpath} - {ex}", flush=True)
         utils.write_error_log(ex)
-
         return None
 
     # Process each chunk
     try:
         while offset < fileLengthSeconds:
+            print(f"[Audio] Processing chunk:", flush=True)
             chunks = get_raw_audio_from_file(fpath, offset, duration)
             print(f"[Audio] chunks: {chunks}")
             samples = []

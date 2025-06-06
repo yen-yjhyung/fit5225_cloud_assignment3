@@ -3,6 +3,7 @@ import boto3
 import os
 from detect_visual_wrapper import run_visual_tagging
 from utils import generate_dynamodb_record
+import tempfile
 
 TABLE_NAME = os.environ.get("TABLE_NAME", "FileMetadata")
 REGION = os.environ.get("REGION", "us-east-1")
@@ -26,7 +27,8 @@ def lambda_handler(event, context):
         thumbnail_key = event.get("thumbnailKey")  # Optional
 
         # Download file
-        local_path = f"/tmp/{os.path.basename(key)}"
+        # local_path = f"/tmp/{os.path.basename(key)}"
+        local_path = os.path.join(tempfile.gettempdir(), os.path.basename(key))
         print(f"Downloading from S3: s3://{bucket}/{key} to {local_path}")
         s3 = boto3.client("s3")
         s3.download_file(bucket, key, local_path)

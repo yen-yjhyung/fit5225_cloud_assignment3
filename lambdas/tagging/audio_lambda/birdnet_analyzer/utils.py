@@ -34,7 +34,7 @@ def runtime_error_handler(f: callable):
 
 def batched(iterable, n, *, strict=False):
     # TODO: Remove this function when Python 3.12 is the minimum version
-    # batched('ABCDEFG', 3) → ABC DEF G
+    # batched('ABCDEFG', 3) to ABC DEF G
     if n < 1:
         raise ValueError("n must be at least one")
     iterator = iter(iterable)
@@ -44,63 +44,63 @@ def batched(iterable, n, *, strict=False):
         yield batch
 
 
-def spectrogram_from_file(path, fig_num=None, fig_size=None, offset=0, duration=None, fmin=None, fmax=None, speed=1.0):
-    """
-    Generate a spectrogram from an audio file.
+# def spectrogram_from_file(path, fig_num=None, fig_size=None, offset=0, duration=None, fmin=None, fmax=None, speed=1.0):
+#     """
+#     Generate a spectrogram from an audio file.
 
-    Parameters:
-    path (str): The path to the audio file.
+#     Parameters:
+#     path (str): The path to the audio file.
 
-    Returns:
-    matplotlib.figure.Figure: The generated spectrogram figure.
-    """
-    import birdnet_analyzer.audio as audio
+#     Returns:
+#     matplotlib.figure.Figure: The generated spectrogram figure.
+#     """
+#     import birdnet_analyzer.audio as audio
 
-    # s, sr = librosa.load(path, offset=offset, duration=duration)
-    s, sr = audio.open_audio_file(path, offset=offset, duration=duration, fmin=fmin, fmax=fmax, speed=speed)
+#     # s, sr = librosa.load(path, offset=offset, duration=duration)
+#     s, sr = audio.open_audio_file(path, offset=offset, duration=duration, fmin=fmin, fmax=fmax, speed=speed)
 
-    return spectrogram_from_audio(s, sr, fig_num, fig_size)
+#     return spectrogram_from_audio(s, sr, fig_num, fig_size)
 
 
-def spectrogram_from_audio(s, sr, fig_num=None, fig_size=None):
-    """
-    Generate a spectrogram from an audio signal.
+# def spectrogram_from_audio(s, sr, fig_num=None, fig_size=None):
+#     """
+#     Generate a spectrogram from an audio signal.
 
-    Parameters:
-    s: The signal
-    sr: The sample rate
+#     Parameters:
+#     s: The signal
+#     sr: The sample rate
 
-    Returns:
-    matplotlib.figure.Figure: The generated spectrogram figure.
-    """
-    import librosa
-    import librosa.display
-    import matplotlib
-    import matplotlib.pyplot as plt
-    import numpy as np
+#     Returns:
+#     matplotlib.figure.Figure: The generated spectrogram figure.
+#     """
+#     import librosa
+#     import librosa.display
+#     import matplotlib
+#     import matplotlib.pyplot as plt
+#     import numpy as np
 
-    matplotlib.use("agg")
+#     matplotlib.use("agg")
 
-    if isinstance(fig_size, tuple):
-        f = plt.figure(fig_num, figsize=fig_size)
-    elif fig_size == "auto":
-        duration = librosa.get_duration(y=s, sr=sr)
-        width = min(12, max(3, duration / 10))
-        f = plt.figure(fig_num, figsize=(width, 3))
-    else:
-        f = plt.figure(fig_num)
+#     if isinstance(fig_size, tuple):
+#         f = plt.figure(fig_num, figsize=fig_size)
+#     elif fig_size == "auto":
+#         duration = librosa.get_duration(y=s, sr=sr)
+#         width = min(12, max(3, duration / 10))
+#         f = plt.figure(fig_num, figsize=(width, 3))
+#     else:
+#         f = plt.figure(fig_num)
 
-    f.clf()
+#     f.clf()
 
-    ax = f.add_subplot(111)
+#     ax = f.add_subplot(111)
 
-    ax.set_axis_off()
-    f.tight_layout(pad=0)
+#     ax.set_axis_off()
+#     f.tight_layout(pad=0)
 
-    D = librosa.stft(s, n_fft=1024, hop_length=512)  # STFT of y
-    S_db = librosa.amplitude_to_db(np.abs(D), ref=np.max)
+#     D = librosa.stft(s, n_fft=1024, hop_length=512)  # STFT of y
+#     S_db = librosa.amplitude_to_db(np.abs(D), ref=np.max)
 
-    return librosa.display.specshow(S_db, ax=ax, n_fft=1024, hop_length=512).figure
+#     return librosa.display.specshow(S_db, ax=ax, n_fft=1024, hop_length=512).figure
 
 
 def collect_audio_files(path: str, max_files: int = None):

@@ -1,9 +1,9 @@
 """Module containing audio helper functions."""
 
-import librosa
 import numpy as np
 import soundfile as sf
 from scipy.signal import firwin, kaiserord, lfilter, find_peaks
+import librosa
 
 import birdnet_analyzer.config as cfg
 
@@ -61,9 +61,7 @@ def get_audio_file_length(path):
     """
     # Open file with librosa (uses ffmpeg or libav)
 
-    # return librosa.get_duration(filename=path, sr=None)
-    info = sf.info(path)
-    return info.duration
+    return librosa.get_duration(filename=path, sr=None)
 
 
 def get_sample_rate(path: str):
