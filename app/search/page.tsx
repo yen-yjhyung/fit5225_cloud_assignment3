@@ -328,7 +328,7 @@ export default function SearchPage() {
                                                 }
                                             />
                                             <p className="p-2 text-sm font-medium text-gray-800">
-                                                {`Uploaded: ${item.uploadedAt}`}
+                                                {`Resource ID: ${item.id}`}
                                             </p>
                                         </div>
                                     ))
@@ -349,7 +349,7 @@ export default function SearchPage() {
                                             className="flex items-center justify-between bg-gray-50 rounded px-4 py-3 shadow hover:bg-gray-100 transition"
                                         >
                                             <div>
-                                                <p className="text-gray-800 font-medium">{`Uploaded: ${item.uploadedAt}`}</p>
+                                                <p className="text-gray-800 font-medium">{`Resource ID: ${item.id}`}</p>
                                                 <p className="text-sm text-gray-600">{`Tags: ${item.tags
                                                     .map((t) => `${t.name}(${t.count})`)
                                                     .join(', ')}`}</p>
@@ -382,7 +382,7 @@ export default function SearchPage() {
                                             className="flex items-center justify-between bg-gray-50 rounded px-4 py-3 shadow hover:bg-gray-100 transition"
                                         >
                                             <div>
-                                                <p className="text-gray-800 font-medium">{`Uploaded: ${item.uploadedAt}`}</p>
+                                                <p className="text-gray-800 font-medium">{`Resource ID: ${item.id}`}</p>
                                                 <p className="text-sm text-gray-600">{`Tags: ${item.tags
                                                     .map((t) => `${t.name}(${t.count})`)
                                                     .join(', ')}`}</p>
