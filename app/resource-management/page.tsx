@@ -1,7 +1,16 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { FiLogOut, FiSearch, FiUser, FiX, FiTrash2, FiEdit3 } from 'react-icons/fi';
+import {
+    FiLogOut,
+    FiSearch,
+    FiUser,
+    FiX,
+    FiTrash2,
+    FiEdit3,
+    FiVolume2,
+    FiVideo,
+} from 'react-icons/fi';
 import { signOut } from '@/lib/auth';
 import { useState, FormEvent } from 'react';
 import { useAuthTokens, Tokens } from '@/hooks/useAuthTokens';
@@ -25,7 +34,7 @@ export default function ResourceManagementPage() {
     const router = useRouter();
     const tokens: Tokens = useAuthTokens();
 
-    // Search‐by‐species state (reuse Search logic)
+    // Search filters
     const [inputSpeciesName, setInputSpeciesName] = useState('');
     const [inputSpeciesCount, setInputSpeciesCount] = useState<number>(1);
     const [speciesFilters, setSpeciesFilters] = useState<SpeciesFilter[]>([]);
@@ -35,7 +44,7 @@ export default function ResourceManagementPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // Per‐item UI state for editing tags
+    // Track which item is in "edit tags" mode
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editTagName, setEditTagName] = useState('');
     const [editTagCount, setEditTagCount] = useState<number>(1);
@@ -140,7 +149,7 @@ export default function ResourceManagementPage() {
                 throw new Error(`Server responded with HTTP ${resp.status}`);
             }
 
-            // Refresh resource list after update
+            // Refresh list
             setEditingId(null);
             await handleSearch(new Event('submit') as any);
         } catch (err) {
@@ -153,6 +162,11 @@ export default function ResourceManagementPage() {
     const handleDelete = async (item: ApiItem) => {
         if (!API_BASE) return;
         setError(null);
+
+        const confirm = window.confirm(
+            `Are you sure you want to delete resource ${item.id}?`
+        );
+        if (!confirm) return;
 
         try {
             const idToken = tokens.idToken;
@@ -217,13 +231,14 @@ export default function ResourceManagementPage() {
             <main className="relative z-10 w-full max-w-5xl mx-auto p-10 rounded-xl m-auto bg-white/80 shadow-lg">
                 <h2 className="text-2xl font-semibold mb-6">Resource Management</h2>
 
-                {/* Filters Form (reuse search) */}
+                {/* Filters Form */}
                 <form onSubmit={handleSearch} className="space-y-6">
                     <div>
                         <label className="block mb-1 font-medium">
                             Bird Filters (add multiple)
                         </label>
                         <div className="flex items-end space-x-4">
+                            {/* Species Name Input */}
                             <div className="flex-1">
                                 <label className="block mb-1 text-sm font-medium">
                                     Species Name
@@ -237,22 +252,20 @@ export default function ResourceManagementPage() {
                                 />
                             </div>
 
+                            {/* Count Input */}
                             <div className="w-24">
-                                <label className="block mb-1 text-sm font-medium">
-                                    Count
-                                </label>
+                                <label className="block mb-1 text-sm font-medium">Count</label>
                                 <input
                                     type="number"
                                     min={1}
                                     value={inputSpeciesCount}
-                                    onChange={(e) =>
-                                        setInputSpeciesCount(Number(e.target.value))
-                                    }
+                                    onChange={(e) => setInputSpeciesCount(Number(e.target.value))}
                                     className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500"
                                     placeholder="1"
                                 />
                             </div>
 
+                            {/* Add Filter Button */}
                             <button
                                 type="button"
                                 onClick={addSpeciesFilter}
@@ -262,6 +275,7 @@ export default function ResourceManagementPage() {
                             </button>
                         </div>
 
+                        {/* Display Added Filters */}
                         <div className="mt-3 flex flex-wrap gap-2">
                             {speciesFilters.map((f) => (
                                 <span
@@ -279,8 +293,10 @@ export default function ResourceManagementPage() {
                         </div>
                     </div>
 
+                    {/* Error Message */}
                     {error && <div className="text-red-600 font-medium">{error}</div>}
 
+                    {/* Search Button */}
                     <div>
                         <button
                             type="submit"
@@ -314,11 +330,19 @@ export default function ResourceManagementPage() {
                                             className="w-24 h-24 object-cover rounded cursor-pointer"
                                             onClick={() => window.open(item.s3Link, '_blank')}
                                         />
+                                    ) : item.mediaType === 'video' ? (
+                                        <div
+                                            className="w-24 h-24 bg-gray-200 flex items-center justify-center rounded cursor-pointer"
+                                            onClick={() => window.open(item.s3Link, '_blank')}
+                                        >
+                                            <FiVideo size={32} className="text-gray-500" />
+                                        </div>
                                     ) : (
-                                        <div className="w-24 h-24 bg-gray-200 flex items-center justify-center rounded">
-                      <span className="text-gray-500 uppercase">
-                        {item.mediaType.slice(0, 1)}
-                      </span>
+                                        <div
+                                            className="w-24 h-24 bg-gray-200 flex items-center justify-center rounded cursor-pointer"
+                                            onClick={() => window.open(item.s3Link, '_blank')}
+                                        >
+                                            <FiVolume2 size={32} className="text-gray-500" />
                                         </div>
                                     )}
                                     <div>
@@ -332,7 +356,7 @@ export default function ResourceManagementPage() {
 
                                 {/* Right: Actions (Edit tags, Delete resource) */}
                                 <div className="flex flex-col space-y-2">
-                                    {/* Delete Button */}
+                                    {/* Delete Button with Confirmation */}
                                     <button
                                         onClick={() => handleDelete(item)}
                                         className="flex items-center gap-1 text-red-700 hover:text-red-900"
@@ -352,7 +376,7 @@ export default function ResourceManagementPage() {
                                         {editingId === item.id ? 'Cancel' : 'Edit Tags'}
                                     </button>
 
-                                    {/* Edit Form (visible if editingId === item.id) */}
+                                    {/* Edit Form (shown when editing this item) */}
                                     {editingId === item.id && (
                                         <div className="border border-gray-300 p-3 rounded space-y-2">
                                             <div>
