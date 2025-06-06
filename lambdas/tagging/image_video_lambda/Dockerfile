@@ -1,11 +1,20 @@
 # Lambda base image with Python 3.10
 FROM public.ecr.aws/lambda/python:3.10
 
+# Avoid cache bloat
+ENV PIP_NO_CACHE_DIR=1
+
 # Working directory
 WORKDIR /var/task
 
-# Avoid cache bloat
-ENV PIP_NO_CACHE_DIR=1
+# # Install system-level packages for OpenCV and other dependencies
+RUN yum install -y mesa-libGL libSM libXrender libXext
+# RUN yum install -y \
+#     libGL \
+#     glib2 \
+#     libsndfile \
+#     ffmpeg \
+#     && yum clean all
 
 # Install Python dependencies
 COPY requirements.txt .
