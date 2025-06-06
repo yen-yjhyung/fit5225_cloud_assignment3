@@ -14,6 +14,7 @@ import {
 import { signOut } from '@/lib/auth';
 import { useState, FormEvent } from 'react';
 import { useAuthTokens, Tokens } from '@/hooks/useAuthTokens';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 
 type ApiItem = {
     id: string;
@@ -32,7 +33,21 @@ type SpeciesFilter = {
 
 export default function ResourceManagementPage() {
     const router = useRouter();
+
+    // Retrieve tokens from Cognito via custom hook
     const tokens: Tokens = useAuthTokens();
+
+    // Check if user session is valid
+    const { checking } = useCurrentUser();
+      
+    if (checking)
+    return (
+        <div>
+        <h1 className="text-center text-2xl font-bold mt-20">
+            Checking Session...
+        </h1>
+        </div>
+    );
 
     // Search filters
     const [inputSpeciesName, setInputSpeciesName] = useState('');
