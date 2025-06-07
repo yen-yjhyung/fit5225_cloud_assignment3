@@ -9,6 +9,8 @@ from ultralytics import YOLO
 import cv2 as cv
 import os
 from collections import defaultdict
+import boto3
+import tempfile
 
 ENV = os.getenv("ENV", "prod") # default to prod if ENV is not set
 
@@ -16,7 +18,48 @@ ENV = os.getenv("ENV", "prod") # default to prod if ENV is not set
 if ENV == "dev":
     import supervision as sv
 
-def image_prediction(image_path, result_filename=None, save_dir="./image_prediction_results", confidence=0.5, model="./model.pt"):
+DEFAULT_S3_BUCKET = "birdtag-inference-models"
+DEFAULT_S3_KEY = "visual/model.pt"
+DEFAULT_LOCAL_MODEL_PATH = os.path.join(tempfile.gettempdir(), "model.pt")
+
+def download_model_from_s3():
+    """
+    Download the YOLO model from S3 to a local path.
+    """
+    bucket = os.environ.get("S3_MODEL_BUCKET", DEFAULT_S3_BUCKET)
+    key = os.environ.get("S3_MODEL_KEY", DEFAULT_S3_KEY)
+    local_path = DEFAULT_LOCAL_MODEL_PATH
+
+    if not os.path.exists(local_path): # if model not already downloaded
+        print(f"Downloading model from s3://{bucket}/{key} to {local_path}", flush=True)
+        s3 = boto3.client('s3')
+        try:
+            s3.download_file(bucket, key, local_path)
+            print(f"Model downloaded from s3://{bucket}/{key} to {local_path}")
+        except Exception as e:
+            # Log the error and raise an exception
+            print(f"Error downloading model from S3: s3://{bucket}/{key} to {local_path} Error: {e}", flush=True)
+            raise RuntimeError(f"Failed to download model from S3: {e}")
+
+    return local_path
+
+# ##### Global Initialization for Visual Detection Model Loading #### 
+GLOBAL_MODEL = None # initialize global model to None
+try:
+    # Download the model to local path
+    global_model_path = download_model_from_s3()
+
+    # Local the YOLO model once into global variable
+    GLOBAL_MODEL = YOLO(global_model_path)
+    print("YOLO model loaded successsfully into global scope.", flush=True)
+except Exception as e:
+    # Print fatal error message and re-raise to inidicate a failed cold start
+    print(f"FATAL ERROR: Could not initialize YOLO model in global scrope. Error: {e}", flush=True)
+    # Re-raise the exception to prevent the Lambda handler from being invoked
+    raise
+
+
+def image_prediction(image_path, result_filename=None, save_dir="./image_prediction_results", confidence=0.5):
     """p
     Function to display predictions of a pre-trained YOLO model on a given image.
 
@@ -28,7 +71,8 @@ def image_prediction(image_path, result_filename=None, save_dir="./image_predict
     """
 
     # Load YOLO model
-    model = YOLO(model)
+    # model = YOLO(model)
+    model = GLOBAL_MODEL
     class_dict = model.names
 
     img = cv.imread(image_path)
@@ -177,7 +221,8 @@ def video_prediction(video_path, result_filename=None, save_dir = "./video_predi
     """
     ENV = os.getenv("ENV", "prod").lower()
     save_annotated = ENV == "dev"
-    model = YOLO(model)
+    # model = YOLO(model)
+    model = GLOBAL_MODEL
     result = {"tags": []}
     cap = cv.VideoCapture(video_path)
 

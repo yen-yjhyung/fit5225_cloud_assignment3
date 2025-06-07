@@ -58,7 +58,8 @@ export default function UploadPage() {
     const fileName = file.name;
 
     try {
-  const res = await fetch("https://obadhri1sg.execute-api.us-east-1.amazonaws.com/prod/upload", {
+  const res = await fetch("https://ziis7zn37k.execute-api.us-east-1.amazonaws.com/prod/upload", {
+  // const res = await fetch("https://obadhri1sg.execute-api.us-east-1.amazonaws.com/prod/upload", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ file: base64, fileName }),
