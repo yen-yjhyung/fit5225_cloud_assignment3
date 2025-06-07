@@ -1,7 +1,6 @@
 """Contains functions to use the BirdNET models."""
 
 import os
-import sys
 import warnings
 
 import numpy as np
