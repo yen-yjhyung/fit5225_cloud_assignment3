@@ -1,5 +1,6 @@
 import os
-from birdnet_audio_wrapper import run_audio_prediction
+# from birdnet_audio_wrapper import run_audio_prediction
+from birds_audio_detection import run_audio_prediction
 
 def run_audio_tagging(file_path: str, media_type: str):
     """

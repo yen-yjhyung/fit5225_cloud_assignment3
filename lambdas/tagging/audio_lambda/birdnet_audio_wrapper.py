@@ -1,6 +1,9 @@
 import os
 from birdnet_analyzer.analyze import utils as analyzer_utils
 from birdnet_analyzer import config as cfg
+import tempfile
+
+
 
 def run_audio_prediction(file_path: str):
 
