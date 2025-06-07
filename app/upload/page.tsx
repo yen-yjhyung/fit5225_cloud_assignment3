@@ -93,7 +93,7 @@ const toBase64 = (file: File): Promise<string> => {
 
   return (
     <div
-      className="flex items-center justify-center min-h-screen bg-gray-100 px-4 bg-no-repeat bg-cover bg-center"
+      className="flex items-center justify-center min-h-screen px-4 bg-no-repeat bg-cover bg-center"
       style={{ backgroundImage: "url('/bird_picture.jpg')" }}
     >
       <Navbar
@@ -101,6 +101,9 @@ const toBase64 = (file: File): Promise<string> => {
         onLogout={handleLogout}
         username={tokens?.name}
       />
+
+      <div className="absolute inset-0 bg-white/8 z-0" />
+
       <form
         onSubmit={handleSubmit}
         className="relative z-10 w-full max-w-sm rounded-lg bg-white/90 p-8 shadow-xl backdrop-blur"
