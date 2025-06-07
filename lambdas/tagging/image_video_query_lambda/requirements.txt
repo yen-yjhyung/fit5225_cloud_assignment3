@@ -1,0 +1,10 @@
+#### VIDEO / IMAGE TAGGING REQUIREMENTS ####
+# Ultralytics YOLO (for image/video)
+ultralytics           
+# supervision                 # Optional but useful for visualization; can be excluded if unused
+
+# OpenCV (headless)
+opencv-python-headless==4.8.1.78   # Compatible with Python 3.10, smaller than full OpenCV
+
+# Web interaction
+requests==2.31.0               # Compatible with Python 3.10

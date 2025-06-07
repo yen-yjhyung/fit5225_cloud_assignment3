@@ -27,7 +27,6 @@ def lambda_handler(event, context):
         thumbnail_key = event.get("thumbnailKey")  # Optional
 
         # Download file
-        # local_path = f"/tmp/{os.path.basename(key)}"
         local_path = os.path.join(tempfile.gettempdir(), os.path.basename(key))
         print(f"Downloading from S3: s3://{bucket}/{key} to {local_path}")
         s3 = boto3.client("s3")
