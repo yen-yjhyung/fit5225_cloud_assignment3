@@ -1,0 +1,35 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation template for Birdtag Inference Models S3 Bucket
+
+Resources:
+  BirdtagInferenceModelsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: birdtag-inference-models-group9 
+      VersioningConfiguration:
+        Status: Enabled
+      # Optional: Add server-side encryption for data at rest (recommended)      
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256 # Or KMS, depending on your needs
+      # Optional: Add public access block settings (recommended for security)
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      # Lifecycle rules can be added if you want to manage storage tiers or deletions
+
+Outputs:
+  BirdtagInferenceModelsBucketName:
+    Description: Name of the Birdtag Inference Models S3 Bucket
+    Value: !Ref BirdtagInferenceModelsBucket # Exports the bucket name
+    Export:
+      Name: BirdtagInferenceModelsBucketName # Exports for cross-stack reference
+
+  BirdtagInferenceModelsBucketArn:
+    Description: ARN of the Birdtag Inference Models S3 Bucket
+    Value: !GetAtt BirdtagInferenceModelsBucket.Arn # Exports the bucket ARN
+    Export:
+      Name: BirdtagInferenceModelsBucketArn # Exports for cross-stack reference

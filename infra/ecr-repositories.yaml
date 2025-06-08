@@ -1,0 +1,67 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation template for Birdtag ECR repositories
+
+Resources:
+  # ECR Repositories
+  BirdtagAudioLambdaEcrRepo:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: birdtag-audio-lambda
+      ImageTagMutability: MUTABLE
+      EncryptionConfiguration:
+        EncryptionType: AES256
+    Metadata:
+      AWS::CloudFormation::Init:
+        config:
+          files:
+            "/tmp/dummy":
+              content: "dummy"
+
+  BirdtagAudioQueryLambdaEcrRepo:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: birdtag-audio-query-lambda
+      ImageTagMutability: MUTABLE
+      EncryptionConfiguration:
+        EncryptionType: AES256
+
+  BirdtagVisualLambdaEcrRepo:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: birdtag-visual-lambda
+      ImageTagMutability: MUTABLE
+      EncryptionConfiguration:
+        EncryptionType: AES256
+
+  BirdtagVisualQueryLambdaEcrRepo:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: birdtag-visual-query-lambda
+      ImageTagMutability: MUTABLE
+      EncryptionConfiguration:
+        EncryptionType: AES256
+
+Outputs:
+  BirdtagAudioLambdaEcrRepoUri:
+    Description: URI of the birdtag-audio-lambda ECR repository
+    Value: !GetAtt BirdtagAudioLambdaEcrRepo.RepositoryUri
+    Export:
+      Name: BirdtagAudioLambdaEcrRepoUri
+
+  BirdtagAudioQueryLambdaEcrRepoUri:
+    Description: URI of the birdtag-audio-query-lambda ECR repository
+    Value: !GetAtt BirdtagAudioQueryLambdaEcrRepo.RepositoryUri
+    Export:
+      Name: BirdtagAudioQueryLambdaEcrRepoUri
+
+  BirdtagVisualLambdaEcrRepoUri:
+    Description: URI of the birdtag-visual-lambda ECR repository
+    Value: !GetAtt BirdtagVisualLambdaEcrRepo.RepositoryUri
+    Export:
+      Name: BirdtagVisualLambdaEcrRepoUri
+
+  BirdtagVisualQueryLambdaEcrRepoUri:
+    Description: URI of the birdtag-visual-query-lambda ECR repository
+    Value: !GetAtt BirdtagVisualQueryLambdaEcrRepo.RepositoryUri
+    Export:
+      Name: BirdtagVisualQueryLambdaEcrRepoUri

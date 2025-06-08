@@ -7,6 +7,11 @@ import base64
 import mimetypes
 from detect_audio_wrapper import run_audio_tagging
 
+# custom setup for mimetypes
+mimetypes.add_type("audio/mp3", ".mp3")
+mimetypes.add_type("audio/wav", ".wav")
+
+
 # lambda handler for audio query tagging
 def lambda_handler(event, context):
     media_type = None

@@ -1,0 +1,207 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation template for Birdtag Lambda functions
+
+# Parameters to make the template more reusable (optional but good practice)
+Parameters:
+  AwsAccountId:
+    Type: String
+    Description: Your AWS Account ID.
+  AwsRegion:
+    Type: String
+    Description: The AWS region where resources are deployed.
+  SnsTopicArn:
+    Type: String
+    Description: ARN of the SNS Topic for Lambda functions.
+    # Default: !ImportValue BirdtagNotificationsTopicArn 
+  DynamoDbTableName:
+    Type: String
+    Description: Name of the DynamoDB Table for Lambda functions.
+    # Default: !ImportValue FileMetadataTableName 
+  InferenceModelsS3BucketName:
+    Type: String
+    Description: Default S3 bucket for visual Lambdas.
+    # Default: !ImportValue BirdtagInferenceModelsBucketName  
+  DefaultS3Key:
+    Type: String
+    Description: Default S3 key for visual Lambdas.
+    Default: "visual/model.pt" 
+  S3CodesKey:
+    Type: String
+    Description: S3 codes key for audio Lambdas.
+    Default: "audio/eBird_taxonomy_codes_2021E.json" 
+  S3LabelsKey:
+    Type: String
+    Description: S3 labels key for audio Lambdas.
+    Default: "audio/labels/V2.4/BirdNET_GLOBAL_6K_V2.4_Labels.txt" 
+  S3ModelBucket:
+    Type: String
+    Description: S3 model bucket for audio Lambdas.
+    Default: "audio/BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite" 
+  S3ModelKey:
+    Type: String
+    Description: S3 model key for audio Lambdas.
+    Default: "audio/BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite" 
+  S3TranslatedLabelsKey:
+    Type: String
+    Description: S3 translated labels key for audio Lambdas.
+    Default: "audio/labels/V2.4/BirdNET_GLOBAL_6K_V2.4_Labels_en_uk.txt" 
+
+Resources:
+  # IAM Role for Lambda Functions
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole # Allows logging to CloudWatch
+      Policies:
+        - PolicyName: LambdaCustomPermissions
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:BatchGetImage
+                  - ecr:BatchCheckLayerAvailability
+                Resource:
+                  - !Sub "arn:aws:ecr:${AwsRegion}:${AwsAccountId}:repository/birdtag-audio-lambda"
+                  - !Sub "arn:aws:ecr:${AwsRegion}:${AwsAccountId}:repository/birdtag-audio-query-lambda"
+                  - !Sub "arn:aws:ecr:${AwsRegion}:${AwsAccountId}:repository/birdtag-visual-lambda"
+                  - !Sub "arn:aws:ecr:${AwsRegion}:${AwsAccountId}:repository/birdtag-visual-query-lambda"
+              - Effect: Allow
+                Action:
+                  - sns:Publish # For SNS_TOPIC_ARN
+                Resource: !Ref SnsTopicArn
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:Query
+                  - dynamodb:Scan # Adjust these DynamoDB permissions as needed
+                Resource: !Sub "arn:aws:dynamodb:${AwsRegion}:${AwsAccountId}:table/${DynamoDbTableName}"
+              # Add any other necessary permissions here (e.g., s3:GetObject, s3:PutObject if Lambdas interact with S3)
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:ListBucket 
+                Resource:
+                  # Permission for all objects within the bucket
+                  - !Sub "arn:aws:s3:::${InferenceModelsS3BucketName}/*"
+                  # Permission for the bucket itself (needed for ListBucket)
+                  - !Sub "arn:aws:s3:::${InferenceModelsS3BucketName}"
+                # --- END NEW S3 Permissions ---
+
+  # Lambda Functions
+  BirdtagAudioLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: birdtag-audio-lambda
+      PackageType: Image
+      Code:
+        # We import the ECR URI from the first stack and append the image tag
+        ImageUri: !Join ['', [!ImportValue BirdtagAudioLambdaEcrRepoUri, ':latest']]
+      Architectures:
+        - x86_64
+      MemorySize: 2048
+      Timeout: 180 # 3 minutes in seconds
+      EphemeralStorage:
+        Size: 1024 # MB
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          S3_CODES_KEY: !Ref S3CodesKey
+          S3_LABELS_KEY: !Ref S3LabelsKey
+          S3_MODEL_BUCKET: !Ref InferenceModelsS3BucketName 
+          S3_MODEL_KEY: !Ref S3ModelKey
+          S3_TRANSLATED_LABELS_KEY: !Ref S3TranslatedLabelsKey
+          SNS_TOPIC_ARN: !Ref SnsTopicArn
+          TABLE_NAME: !Ref DynamoDbTableName
+
+  BirdtagAudioQueryLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: birdtag-audio-query-lambda
+      PackageType: Image
+      Code:
+        ImageUri: !Join ['', [!ImportValue BirdtagAudioQueryLambdaEcrRepoUri, ':latest']]
+      Architectures:
+        - x86_64
+      MemorySize: 2048
+      Timeout: 180 # 3 minutes in seconds
+      EphemeralStorage:
+        Size: 1024 # MB
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          S3_CODES_KEY: !Ref S3CodesKey
+          S3_LABELS_KEY: !Ref S3LabelsKey
+          S3_MODEL_BUCKET: !Ref InferenceModelsS3BucketName 
+          S3_MODEL_KEY: !Ref S3ModelKey
+          S3_TRANSLATED_LABELS_KEY: !Ref S3TranslatedLabelsKey
+
+  BirdtagVisualLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: birdtag-visual-lambda
+      PackageType: Image
+      Code:
+        ImageUri: !Join ['', [!ImportValue BirdtagVisualLambdaEcrRepoUri, ':latest']]
+      Architectures:
+        - x86_64
+      MemorySize: 3008 # ap-southeast-2 region max memory
+      Timeout: 300 # 5 minutes in seconds
+      EphemeralStorage:
+        Size: 4096 # MB
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          DEFAULT_S3_BUCKET: !Ref InferenceModelsS3BucketName 
+          DEFAULT_S3_KEY: !Ref DefaultS3Key
+          SNS_TOPIC_ARN: !Ref SnsTopicArn
+          TABLE_NAME: !Ref DynamoDbTableName
+
+  BirdtagVisualQueryLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: birdtag-visual-query-lambda
+      PackageType: Image
+      Code:
+        ImageUri: !Join ['', [!ImportValue BirdtagVisualQueryLambdaEcrRepoUri, ':latest']]
+      Architectures:
+        - x86_64
+      MemorySize: 3008
+      Timeout: 300 # 5 minutes in seconds
+      EphemeralStorage:
+        Size: 4096 # MB
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          DEFAULT_S3_BUCKET: !Ref InferenceModelsS3BucketName 
+          DEFAULT_S3_KEY: !Ref DefaultS3Key
+
+Outputs:
+  BirdtagAudioLambdaArn:
+    Description: ARN of the birdtag-audio-lambda function
+    Value: !GetAtt BirdtagAudioLambda.Arn
+
+  BirdtagAudioQueryLambdaArn:
+    Description: ARN of the birdtag-audio-query-lambda function
+    Value: !GetAtt BirdtagAudioQueryLambda.Arn
+
+  BirdtagVisualLambdaArn:
+    Description: ARN of the birdtag-visual-lambda function
+    Value: !GetAtt BirdtagVisualLambda.Arn
+
+  BirdtagVisualQueryLambdaArn:
+    Description: ARN of the birdtag-visual-query-lambda function
+    Value: !GetAtt BirdtagVisualQueryLambda.Arn
