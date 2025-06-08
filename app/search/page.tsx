@@ -71,7 +71,7 @@ export default function SearchPage() {
     const fileRef = useRef<HTMLInputElement>(null);
 
     if (checking) {
-        return <div className="text-center text-2xl mt-20">Checking session...</div>;
+        return <div className="text-center text-2xl mt-20 font-bold">Checking session...</div>;
     }
 
     const handleLogout = () => {
@@ -232,7 +232,7 @@ export default function SearchPage() {
              style={{backgroundImage: "url('/bird_picture.jpg')"}}>
             <Navbar onNavigate={handleNav} onLogout={handleLogout} username={tokens.name}/>
             <div className="absolute inset-0 bg-white/8"/>
-            <main className="relative z-10 w-full max-w-4xl mx-auto bg-white/80 p-10 rounded-xl shadow-lg">
+            <main className="relative z-10 w-full max-w-4xl m-auto bg-white/80 p-10 rounded-xl shadow-lg">
                 <h2 className="text-2xl font-semibold mb-6">Search Media</h2>
                 {/* mode tabs */}
                 <div className="flex space-x-4 border-b border-gray-300 mb-6">
