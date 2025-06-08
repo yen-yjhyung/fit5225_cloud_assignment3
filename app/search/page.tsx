@@ -55,7 +55,7 @@ export default function SearchPage() {
     const [activeTab, setActiveTab] = useState<'images' | 'videos' | 'audio'>('images');
 
     // search mode: 'species', 'file' or 'tag'
-    const [mode, setMode] = useState<'species' | 'file' | 'tag'>('species');
+    const [mode, setMode] = useState<'species' | 'file' | 'tag'>('tag');
 
     // species filter state
     const [inputName, setInputName] = useState('');
