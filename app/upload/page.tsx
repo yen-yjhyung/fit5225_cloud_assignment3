@@ -102,11 +102,11 @@ const toBase64 = (file: File): Promise<string> => {
         username={tokens?.name}
       />
 
-      <div className="absolute inset-0 bg-white/8 z-0" />
+      <div className="absolute inset-0 bg-white/8" />
 
       <form
         onSubmit={handleSubmit}
-        className="relative z-10 w-full max-w-sm rounded-lg bg-white/90 p-8 shadow-xl backdrop-blur"
+        className="relative z-10 w-full max-w-sm rounded-lg bg-white/80 p-8 shadow-xl"
       >
         <div className="flex flex-row items-center justify-center mb-6 gap-2">
           <div className="text-center">
@@ -140,7 +140,7 @@ const toBase64 = (file: File): Promise<string> => {
   <button
     type="submit"
     disabled={loading}
-    className={`flex items-center justify-center gap-2 w-full ${
+    className={`flex items-center justify-center cursor-pointer gap-2 w-full ${
       loading ? "bg-red-400" : "bg-red-800"
     } text-white font-semibold py-3 px-4 rounded-lg`}
   >
