@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { FiSearch, FiX, FiUpload, FiVideo, FiVolume2 } from 'react-icons/fi';
+import { FiSearch, FiX, FiUpload, FiFileText, FiVideo, FiVolume2 } from 'react-icons/fi';
 import { signOut } from '@/lib/auth';
 import { useState, FormEvent, ChangeEvent, useRef } from 'react';
 import { useAuthTokens, Tokens } from '@/hooks/useAuthTokens';
@@ -101,6 +101,7 @@ export default function SearchPage() {
         if (!API_BASE) return setError('API missing');
         if (filters.length === 0) return setError('Add at least one filter');
         setLoading(true);
+        setFile(null);
         try {
             const token = tokens.idToken; if (!token) throw new Error('Missing token');
             const resp = await fetch(`${API_BASE}/query`, {
@@ -181,8 +182,7 @@ export default function SearchPage() {
                             <div className="mt-3 flex flex-wrap gap-2">
                                 {filters.map(f => (
                                     <span key={f.name} className="flex items-center bg-red-200 text-red-800 text-sm px-2 py-1 rounded-full">
-                    {f.name}:{f.count}
-                                        <FiX size={14} className="ml-1 cursor-pointer hover:text-red-600" onClick={() => removeFilter(f.name)} />
+                    {f.name}:{f.count}<FiX size={14} className="ml-1 cursor-pointer hover:text-red-600" onClick={() => removeFilter(f.name)} />
                   </span>
                                 ))}
                             </div>
@@ -195,8 +195,13 @@ export default function SearchPage() {
                         <div>
                             <label className="block mb-1 font-medium">Upload File</label>
                             <input ref={fileRef} type="file" accept={Object.values(SUPPORTED_EXTS).join(',')} onChange={onFileChange} className="hidden" />
-                            <button type="button" onClick={triggerSelect} className="flex items-center gap-2 bg-red-800 text-white px-4 py-2 rounded hover:bg-red-700"> <FiUpload size={18} /> Choose File</button>
-                            <span className="ml-4">{file?.name}</span>
+                            <button type="button" onClick={triggerSelect} className="flex items-center gap-2 bg-red-800 text-white px-4 py-2 rounded hover:bg-red-700"> <FiUpload size={18}/> Choose File</button>
+                            {file && (
+                                <div className="flex items-center mt-4">
+                                    <FiFileText size={20} className="text-gray-600 mr-2" />
+                                    <span className="text-gray-800">{file.name}</span>
+                                </div>
+                            )}
                             <p className="mt-1 text-sm text-gray-600">Supported: {Object.keys(SUPPORTED_EXTS).join(', ')}, max 2MB</p>
                         </div>
                         {error && <div className="text-red-600 font-medium">{error}</div>}
