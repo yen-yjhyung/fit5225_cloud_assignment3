@@ -34,28 +34,3 @@ def generate_dynamodb_record(bucket, file_id, key, size, media_type, extension, 
         item["thumbnailKey"] = thumbnail_key
 
     return item
-
-# def generate_dynamodb_record(bucket, file_id, key, size, media_type, extension, tags, thumbnail_key=None):
-#     tag_list = [
-#         {
-#             "M": {
-#                 "name": {"S": tag["name"]},
-#                 "count": {"N": str(tag["count"])}
-#             }
-#         } for tag in tags
-#     ]
-
-#     item = {
-#         "fileId": {"S": file_id},
-#         "key": {"S": key},
-#         "bucket": {"S": bucket},
-#         "size": {"N": str(size)},
-#         "type": {"S": media_type},
-#         "format": {"S": extension},
-#         "tags": {"L": tag_list},
-#     }
-
-#     if thumbnail_key:
-#         item["thumbnailKey"] = {"S": thumbnail_key}
-
-#     return item
