@@ -1,16 +1,20 @@
 import json
 import boto3
 import os
-from detect_audio_wrapper import run_audio_tagging
-from utils import generate_dynamodb_record
 import soundfile as sf
 import tempfile
+from detect_audio_wrapper import run_audio_tagging
+from utils import generate_dynamodb_record
 
 TABLE_NAME = os.environ.get("TABLE_NAME", "FileMetadata")
 REGION = os.environ.get("REGION", "us-east-1")
 print(f"Using DynamoDB table: {TABLE_NAME} in region: {REGION}")
 dynamodb = boto3.resource("dynamodb", region_name=REGION)
 s3_client = boto3.client("s3", region_name=REGION)
+
+# Initialize SNS client for warm start
+sns_client = boto3.client("sns", region_name=REGION)
+SNS_TOPIC_ARN = os.environ.get("SNS_TOPIC_ARN", "arn:aws:sns:REGION:ACCOUNT_ID:BirdTaggingResultsTopic")
 
 # Lambda_handler.V3
 def lambda_handler(event, context):
@@ -24,8 +28,7 @@ def lambda_handler(event, context):
         file_id = event["fileId"]
         size = event["size"]
         media_type = event["type"]
-        format_ = event["format"]
-        thumbnail_key = event.get("thumbnailKey")  # Optional
+        extension = event["format"]
 
         # Download file
         local_path = os.path.join(tempfile.gettempdir(), os.path.basename(key))
@@ -56,17 +59,51 @@ def lambda_handler(event, context):
             key=key,
             size=size,
             media_type=media_type,
-            extension=format_,
-            tags=tags,
-            thumbnail_key=thumbnail_key
+            extension=extension,
+            tags=tags
         )
         print("DynamoDB record to insert:", json.dumps(record, indent=2))
 
         # dynamodb.put_item(TableName=TABLE_NAME, Item=record)
         table = dynamodb.Table(TABLE_NAME)
         response = table.put_item(Item=record)
-        print("DynamoDB response:", response)
-        print("Record inserted into DynamoDB.")
+        print(f"Record successfully inserted into DynamoDB. Response: {response}")
+
+        print("Publishing SNS message ... ")
+        # Publish to SNS
+        message_attributes = {
+            "media_type": {
+                "DataType": "String",
+                "StringValue": media_type
+            },
+            "file_id": {
+                "DataType": "String",
+                "StringValue": file_id
+            },
+            "extension": {
+                "DataType": "String",
+                "StringValue": extension
+            }
+        }
+
+        sns_message = {
+            "s3_url": f"s3://{bucket}/{key}",
+            "bucket": bucket,
+            "key": key,
+            "file_id": file_id,
+            "size": size,
+            "media_type": media_type,
+            "format": extension,
+            "tags": tags
+        }
+
+        sns_client.publish(
+            TopicArn=SNS_TOPIC_ARN,
+            Message=json.dumps(sns_message),
+            MessageAttributes=message_attributes
+        )
+        print(f"Published tagging results to SNS topic: {SNS_TOPIC_ARN}")
+
         return {
             "statusCode": 200,
             "body": json.dumps({"message": "Success", "tags": tags})
