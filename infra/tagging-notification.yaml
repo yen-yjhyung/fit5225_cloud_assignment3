@@ -1,0 +1,15 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation template for Birdtag application data resources (SNS).
+
+Resources:
+  BirdtagNotificationsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: BirdtagDetectionNotifications
+
+Outputs:
+  BirdtagNotificationsTopicArn:
+    Description: ARN of the SNS topic for Birdtag notifications.
+    Value: !Ref BirdtagNotificationsTopic
+    Export:
+      Name: BirdtagNotificationsTopicArn

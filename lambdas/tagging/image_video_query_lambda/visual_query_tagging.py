@@ -5,6 +5,10 @@ import base64
 import mimetypes
 from detect_visual_wrapper import run_visual_tagging
 
+# custom setup for mimetypes 
+mimetypes.add_type("video/x-msvideo", ".avi")
+mimetypes.add_type("video/avi", ".avi")
+mimetypes.add_type("video/msvideo", ".avi")
 
 # lambda handler for visual (image/video) query tagging
 def lambda_handler(event, context):
