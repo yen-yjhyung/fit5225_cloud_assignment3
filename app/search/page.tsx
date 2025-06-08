@@ -54,13 +54,17 @@ export default function SearchPage() {
     const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<'images'|'videos'|'audio'>('images');
 
-    // search mode: 'species' or 'file'
-    const [mode, setMode] = useState<'species'|'file'>('species');
+    // search mode: 'species', 'file' or 'tag'
+    const [mode, setMode] = useState<'species'|'file'|'tag'>('species');
 
     // species filter state
     const [inputName, setInputName] = useState('');
     const [inputCount, setInputCount] = useState(1);
     const [filters, setFilters] = useState<SpeciesFilter[]>([]);
+
+    // tag-only filter state
+    const [tagInput, setTagInput] = useState('');
+    const [tagFilters, setTagFilters] = useState<string[]>([]);
 
     // file upload state
     const [file, setFile] = useState<File|null>(null);
@@ -82,6 +86,16 @@ export default function SearchPage() {
         setInputName(''); setInputCount(1);
     };
     const removeFilter = (name: string) => setFilters(filters.filter(f => f.name !== name));
+
+    // tag-only handlers
+    const addTagFilter = () => {
+        const name = tagInput.trim().toLowerCase();
+        if (!name) return;
+        if (tagFilters.includes(name)) { setTagInput(''); return; }
+        setTagFilters([...tagFilters, name]);
+        setTagInput('');
+    };
+    const removeTagFilter = (name: string) => setTagFilters(tagFilters.filter(t => t !== name));
 
     // file handlers
     const onFileChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -112,6 +126,25 @@ export default function SearchPage() {
             if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
             const j:{results:ApiItem[]} = await resp.json();
             splitResults(j.results);
+        } catch(err:any) { console.error(err); setError(err.message); }
+        finally { setLoading(false); }
+    };
+
+    // perform tag-only search
+    const doTagSearch = async (e: FormEvent) => {
+        e.preventDefault(); setError(null);
+        if (!API_BASE) return setError('API missing');
+        if (tagFilters.length === 0) return setError('Add at least one tag');
+        setLoading(true);
+        setFile(null);
+        try {
+            const token = tokens.idToken; if (!token) throw new Error('Missing token');
+            const resp = await fetch(`${API_BASE}/find`, {
+                method: 'POST', headers: { 'Content-Type':'application/json', Authorization:`Bearer ${token}` },
+                body: JSON.stringify({ species: tagFilters.map(name=>({ name })) })
+            });
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            const j:{results:ApiItem[]} = await resp.json(); splitResults(j.results);
         } catch(err:any) { console.error(err); setError(err.message); }
         finally { setLoading(false); }
     };
@@ -159,12 +192,13 @@ export default function SearchPage() {
                 <h2 className="text-2xl font-semibold mb-6">Search Media</h2>
                 {/* mode tabs */}
                 <div className="flex space-x-4 border-b border-gray-300 mb-6">
-                    <button onClick={() => setMode('species')} className={`pb-2 font-medium ${mode==='species' ? 'border-b-2 border-red-800 text-red-800' : 'text-gray-600 hover:text-gray-800'}`}>Search by Species</button>
-                    <button onClick={() => setMode('file')} className={`pb-2 font-medium ${mode==='file' ? 'border-b-2 border-red-800 text-red-800' : 'text-gray-600 hover:text-gray-800'}`}>Search by File</button>
+                    <button onClick={()=>setMode('tag')} className={`pb-2 font-medium ${mode==='tag'? 'border-b-2 border-red-800 text-red-800':'text-gray-600 hover:text-gray-800'}`}>Search by Tags</button>
+                    <button onClick={()=>setMode('species')} className={`pb-2 font-medium ${mode==='species'? 'border-b-2 border-red-800 text-red-800':'text-gray-600 hover:text-gray-800'}`}>Search by Species & Counts</button>
+                    <button onClick={()=>setMode('file')} className={`pb-2 font-medium ${mode==='file'? 'border-b-2 border-red-800 text-red-800':'text-gray-600 hover:text-gray-800'}`}>Search by File</button>
                 </div>
 
                 {/* search forms */}
-                {mode === 'species' ? (
+                {mode === 'species' && (
                     <form onSubmit={doSpeciesSearch} className="space-y-6">
                         <div>
                             <label className="block mb-1 font-medium">Bird Filters</label>
@@ -190,22 +224,37 @@ export default function SearchPage() {
                         {error && <div className="text-red-600 font-medium">{error}</div>}
                         <button type="submit" disabled={loading} className="flex items-center gap-2 bg-red-800 text-white px-6 py-3 rounded-lg shadow hover:bg-red-700 transition">{loading ? 'Searching...' : <><FiSearch size={20} /> Search</>}</button>
                     </form>
-                ) : (
+                )}
+                {mode==='file' && (
                     <form onSubmit={doFileSearch} className="space-y-6">
                         <div>
                             <label className="block mb-1 font-medium">Upload File</label>
                             <input ref={fileRef} type="file" accept={Object.values(SUPPORTED_EXTS).join(',')} onChange={onFileChange} className="hidden" />
-                            <button type="button" onClick={triggerSelect} className="flex items-center gap-2 bg-red-800 text-white px-4 py-2 rounded hover:bg-red-700"> <FiUpload size={18}/> Choose File</button>
-                            {file && (
-                                <div className="flex items-center mt-4">
-                                    <FiFileText size={20} className="text-gray-600 mr-2" />
-                                    <span className="text-gray-800">{file.name}</span>
-                                </div>
-                            )}
+                            <button type="button" onClick={triggerSelect} className="flex items-center gap-2 bg-red-800 text-white px-4 py-2 rounded hover:bg-red-700"><FiUpload/> Choose File</button>
+                            {file && <div className="flex items-center mt-4"><FiFileText size={20} className="text-gray-600 mr-2"/><span className="text-gray-800">{file.name}</span></div>}
                             <p className="mt-1 text-sm text-gray-600">Supported: {Object.keys(SUPPORTED_EXTS).join(', ')}, max 2MB</p>
                         </div>
                         {error && <div className="text-red-600 font-medium">{error}</div>}
                         <button type="submit" disabled={loading} className="flex items-center gap-2 bg-red-800 text-white px-6 py-3 rounded-lg shadow hover:bg-red-700 transition">{loading ? 'Searching...' : <><FiSearch size={20} /> Search</>}</button>
+                    </form>
+                )}
+                {mode==='tag' && (
+                    <form onSubmit={doTagSearch} className="space-y-6">
+                        <div>
+                            <label className="block mb-1 font-medium">Tag Filters</label>
+                            <div className="flex items-end space-x-4">
+                                <div className="flex-1">
+                                    <label className="block mb-1 text-sm font-medium">Tag Name</label>
+                                    <input value={tagInput} onChange={e=>setTagInput(e.target.value)} placeholder="Enter tag" className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500" />
+                                </div>
+                                <button type="button" onClick={addTagFilter} className="bg-red-800 text-white px-4 py-2 rounded hover:bg-red-700">Add</button>
+                            </div>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                                {tagFilters.map(t=>(<span key={t} className="flex items-center bg-red-200 text-red-800 text-sm px-2 py-1 rounded-full">{t}<FiX size={14} className="ml-1 cursor-pointer hover:text-red-600" onClick={()=>removeTagFilter(t)}/></span>))}
+                            </div>
+                        </div>
+                        {error && <div className="text-red-600 font-medium">{error}</div>}
+                        <button type="submit" disabled={loading} className="flex items-center gap-2 bg-red-800 text-white px-6 py-3 rounded-lg shadow hover:bg-red-700 transition">{loading? 'Searching...': <><FiSearch size={20}/> Search</>}</button>
                     </form>
                 )}
 
@@ -230,8 +279,8 @@ export default function SearchPage() {
                         {activeTab==='videos' && (
                             <div className="grid grid-cols-2 gap-6">
                                 {results.videos.length===0 ? <p className="col-span-2 text-center text-gray-500">No videos.</p> : results.videos.map(item => (
-                                    <div key={item.id} className="rounded overflow-hidden shadow hover:shadow-lg transition flex flex-col">
-                                        <div className="w-full h-48 bg-gray-200 flex items-center justify-center cursor-pointer" onClick={() => window.open(item.s3Link,'_blank')}>
+                                    <div key={item.id} className="rounded overflow-hidden shadow hover:shadow-lg transition flex flex-col" onClick={()=>window.open(item.s3Link,'_blank')}>
+                                        <div className="w-full h-48 bg-gray-200 flex items-center justify-center">
                                             <FiVideo size={48} className="text-gray-500" />
                                         </div>
                                         <p className="p-2 text-sm font-medium">{item.id}</p>
@@ -242,7 +291,7 @@ export default function SearchPage() {
                         {activeTab==='audio' && (
                             <div className="space-y-4">
                                 {results.audio.length===0 ? <p className="text-center text-gray-500">No audio.</p> : results.audio.map(item => (
-                                    <div key={item.id} className="flex items-center bg-gray-50 rounded px-4 py-3 shadow hover:bg-gray-100 cursor-pointer" onClick={() => window.open(item.s3Link,'_blank')}>
+                                    <div key={item.id} className="flex items-center bg-gray-50 rounded px-4 py-3 shadow hover:bg-gray-100 cursor-pointer" onClick={()=>window.open(item.s3Link,'_blank')}>
                                         <FiVolume2 size={24} className="text-gray-600 mr-4" />
                                         <span className="font-medium">{item.id}</span>
                                     </div>
