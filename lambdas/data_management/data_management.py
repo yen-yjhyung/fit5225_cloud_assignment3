@@ -92,7 +92,7 @@ def handle_update_tags(event):
                 continue
 
             for item in items:
-                item_id = item["id"]["S"]
+                item_id = item["fileId"]["S"]
 
                 existing_tag_map = {}
                 for t_elt in item.get("tags", {}).get("L", []):
@@ -124,14 +124,14 @@ def handle_update_tags(event):
 
                 dynamodb_client.update_item(
                     TableName=TABLE_NAME,
-                    Key={ "id": {"S": item_id} },
+                    Key={ "fileId": {"S": item_id} },
                     UpdateExpression="SET #tg = :newtags",
                     ExpressionAttributeNames={"#tg": "tags"},
                     ExpressionAttributeValues={":newtags": new_dynamodb_tags}
                 )
 
                 updated_items_entry = {
-                    "id": item_id,
+                    "fileId": item_id,
                     "tags": [
                         {"name": nm, "count": existing_tag_map[nm]}
                         for nm in existing_tag_map
@@ -188,7 +188,7 @@ def handle_delete_resource(event):
         # 3. Delete every match
         deleted_records = []
         for item in items:
-            item_id    = item["id"]["S"]
+            item_id    = item["fileId"]["S"]
             item_type  = item.get("type", {}).get("S", "")
             thumb_key  = item.get("thumbnailKey", {}).get("S", "")
 
@@ -211,7 +211,7 @@ def handle_delete_resource(event):
             try:
                 dynamodb_client.delete_item(
                     TableName=TABLE_NAME,
-                    Key={"id": {"S": item_id}}
+                    Key={"fileId": {"S": item_id}}
                 )
             except ClientError as e:
                 return _response(500, {"message": "Failed to delete DynamoDB record", "error": str(e)})
