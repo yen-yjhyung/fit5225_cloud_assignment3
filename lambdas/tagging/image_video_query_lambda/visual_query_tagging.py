@@ -13,6 +13,7 @@ mimetypes.add_type("video/msvideo", ".avi")
 # lambda handler for visual (image/video) query tagging
 def lambda_handler(event, context):
     media_type = None
+    temp_file = None
 
     try:
         print("Event received:", json.dumps(event, indent=2))
@@ -26,7 +27,9 @@ def lambda_handler(event, context):
             }
         
         base64_data = event["body"]
-        decoded_data = base64.b64decode(base64_data)
+        first_decoded_data = base64.b64decode(base64_data)
+        original_base64_string = first_decoded_data.decode('utf-8')
+        decoded_data = base64.b64decode(original_base64_string)
         print("File decoded successfully.")
 
         # 2. Determine media type from Content-Type header
@@ -60,7 +63,9 @@ def lambda_handler(event, context):
             }
         
         # 3. Write the decode file to a temporary file
-        with tempfile.NamedTemporaryFile(delete=False, suffix=extension, dir=os.path.join(tempfile.gettempdir(),"file")) as temp_file:
+        temp_dir = os.path.join(tempfile.gettempdir(), "file")
+        os.makedirs(temp_dir, exist_ok=True)
+        with tempfile.NamedTemporaryFile(delete=False, suffix=extension, dir=temp_dir) as temp_file:
             temp_file.write(decoded_data)
             temp_file_path = temp_file.name
         print(f"File saved to temporary path: {temp_file_path}")
