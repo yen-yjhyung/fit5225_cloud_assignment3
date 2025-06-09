@@ -191,24 +191,29 @@ export default function SearchPage() {
         if (!file) return setError('Select a file');
         setLoading(true);
         try {
-            const token = tokens.idToken;
-            if (!token) throw new Error('Missing token');
-            const buf = await file.arrayBuffer();
-            const resp = await fetch(`${API_BASE}/query-by-file`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': SUPPORTED_EXTS['.' + file.name.split('.').pop()!],
-                    Authorization: `Bearer ${token}`
-                },
-                body: buf
-            });
-            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-            const j: { results: ApiItem[] } = await resp.json();
-            splitResults(j.results);
+            const reader = new FileReader();
+            reader.onload = async () => {
+                const token = tokens.idToken;
+                if (!token) throw new Error('Missing token');
+                const dataUrl = reader.result as string;
+                const base64 = dataUrl.split(',')[1];
+                const ext = '.' + file.name.split('.').pop()!.toLowerCase();
+                const contentType = SUPPORTED_EXTS[ext];
+                const resp = await fetch(`${API_BASE}/query-by-file`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': contentType, Authorization: `Bearer ${token}` },
+                    body: base64
+                });
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                const j: { results: ApiItem[] } = await resp.json();
+                splitResults(j.results);
+            };
+            reader.readAsDataURL(file);
         } catch (err: any) {
             console.error(err);
             setError(err.message);
-        } finally {
+        }
+        finally {
             setLoading(false);
         }
     };
