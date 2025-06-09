@@ -273,7 +273,7 @@ export default function ResourceManagementPage() {
                             <button
                                 type="button"
                                 onClick={addSpeciesFilter}
-                                className="bg-red-800 text-white px-4 py-2 rounded hover:bg-red-700 transition"
+                                className="cursor-pointer bg-red-800 text-white px-4 py-2 rounded hover:bg-red-700 transition"
                             >
                                 Add
                             </button>
@@ -305,7 +305,7 @@ export default function ResourceManagementPage() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className={`flex items-center gap-2 bg-red-800 text-white px-6 py-3 rounded-lg shadow hover:bg-red-700 transition ${
+                            className={`cursor-pointer flex items-center gap-2 bg-red-800 text-white px-6 py-3 rounded-lg shadow hover:bg-red-700 transition ${
                                 loading ? 'opacity-60 cursor-not-allowed' : ''
                             }`}
                         >

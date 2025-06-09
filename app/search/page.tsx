@@ -274,7 +274,7 @@ export default function SearchPage() {
                                            className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500"/>
                                 </div>
                                 <button type="button" onClick={addFilter}
-                                        className="bg-red-800 text-white px-4 py-2 rounded hover:bg-red-700">Add
+                                        className="bg-red-800 text-white px-4 py-2 rounded hover:bg-red-700 cursor-pointer">Add
                                 </button>
                             </div>
                             <div className="mt-3 flex flex-wrap gap-2">
@@ -289,7 +289,7 @@ export default function SearchPage() {
                         </div>
                         {error && <div className="text-red-600 font-medium">{error}</div>}
                         <button type="submit" disabled={loading}
-                                className="flex items-center gap-2 bg-red-800 text-white px-6 py-3 rounded-lg shadow hover:bg-red-700 transition">{loading ? 'Searching...' : <>
+                                className="cursor-pointer flex items-center gap-2 bg-red-800 text-white px-6 py-3 rounded-lg shadow hover:bg-red-700 transition">{loading ? 'Searching...' : <>
                             <FiSearch size={20}/> Search</>}</button>
                     </form>
                 )}
@@ -300,7 +300,7 @@ export default function SearchPage() {
                             <input ref={fileRef} type="file" accept={Object.values(SUPPORTED_EXTS).join(',')}
                                    onChange={onFileChange} className="hidden"/>
                             <button type="button" onClick={triggerSelect}
-                                    className="flex items-center gap-2 bg-red-800 text-white px-4 py-2 rounded hover:bg-red-700">
+                                    className="cursor-pointer flex items-center gap-2 bg-red-800 text-white px-4 py-2 rounded hover:bg-red-700">
                                 <FiUpload/> Choose File
                             </button>
                             {file && <div className="flex items-center mt-4"><FiFileText size={20}
@@ -311,7 +311,7 @@ export default function SearchPage() {
                         </div>
                         {error && <div className="text-red-600 font-medium">{error}</div>}
                         <button type="submit" disabled={loading}
-                                className="flex items-center gap-2 bg-red-800 text-white px-6 py-3 rounded-lg shadow hover:bg-red-700 transition">{loading ? 'Searching...' : <>
+                                className="cursor-pointer flex items-center gap-2 bg-red-800 text-white px-6 py-3 rounded-lg shadow hover:bg-red-700 transition">{loading ? 'Searching...' : <>
                             <FiSearch size={20}/> Search</>}</button>
                     </form>
                 )}
@@ -327,7 +327,7 @@ export default function SearchPage() {
                                            className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500"/>
                                 </div>
                                 <button type="button" onClick={addTagFilter}
-                                        className="bg-red-800 text-white px-4 py-2 rounded hover:bg-red-700">Add
+                                        className="cursor-pointer bg-red-800 text-white px-4 py-2 rounded hover:bg-red-700">Add
                                 </button>
                             </div>
                             <div className="mt-3 flex flex-wrap gap-2">
@@ -339,7 +339,7 @@ export default function SearchPage() {
                         </div>
                         {error && <div className="text-red-600 font-medium">{error}</div>}
                         <button type="submit" disabled={loading}
-                                className="flex items-center gap-2 bg-red-800 text-white px-6 py-3 rounded-lg shadow hover:bg-red-700 transition">{loading ? 'Searching...' : <>
+                                className="cursor-pointer flex items-center gap-2 bg-red-800 text-white px-6 py-3 rounded-lg shadow hover:bg-red-700 transition">{loading ? 'Searching...' : <>
                             <FiSearch size={20}/> Search</>}</button>
                     </form>
                 )}
