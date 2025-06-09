@@ -57,8 +57,8 @@ def handle_query_by_file(event):
             Payload=json.dumps(tag_event).encode()
         )
         tag_payload = json.loads(tag_resp["Payload"].read())
-        if tag_payload.get("statusCode",500)!=200:
-            return _response(502, {"error":"Tagging failed","detail":tag_payload.get("body")})
+        if tag_payload.get("statusCode", 500)!=200:
+            return _response(502, {"error":"Tagging failed","requestId":tag_payload.get("requestId")})
 
         tags = json.loads(tag_payload["body"]).get("tags",[])
         if not tags:
