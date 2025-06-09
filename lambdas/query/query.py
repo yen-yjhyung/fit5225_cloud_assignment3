@@ -60,9 +60,9 @@ def handle_query(event):
 
         # For each item, build a dict: { tagName: tagCount, ... }
         def match_item(item):
-            item_tags = { t["name"]: int(t["count"]) for t in item.get("tags", []) }
+            item_tags = { t["name"].lower(): int(t["count"]) for t in item.get("tags", []) }
             for f in filters:
-                name = f.get("name")
+                name = f.get("name").lower()
                 cnt  = int(f.get("count", 0))
                 if name not in item_tags or item_tags[name] < cnt:
                     return False
