@@ -6,11 +6,12 @@ from birdnet_analyzer.analyze import utils as analyzer_utils
 from birdnet_analyzer import config as cfg
 
 # Global Variable and Conifguration for Model and related files
-DEFAULT_S3_BUCKET = os.environ.get("S3_MODEL_BUCKET", "birdtag-inference-models")
+DEFAULT_S3_BUCKET = os.environ.get("S3_MODEL_BUCKET", "birdtag-inference-models-group9")
 DEFAULT_MODEL_S3_KEY = os.environ.get("S3_MODEL_KEY", "audio/BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite")
 DEFAULT_LABELS_S3_KEY = os.environ.get("S3_LABELS_KEY", "audio/labels/V2.4/BirdNET_GLOBAL_6K_V2.4_Labels.txt")
 DEFAULT_TRANSLATED_LABELS_S3_KEY = os.environ.get("S3_TRANSLATED_LABELS_KEY", "audio/labels/V2.4/BirdNET_GLOBAL_6K_V2.4_Labels_en_uk.txt")
 DEFAULT_CODES_S3_KEY = os.environ.get("S3_CODES_KEY", "audio/eBird_taxonomy_codes_2021E.json")
+REGION = os.environ.get("REGION", "ap-southeast-2")
 
 # Define local paths in /tmp/ where model and files will be downloaded
 LOCAL_MODEL_BASE_DIR = os.path.join(tempfile.gettempdir(), "birdnet_model_data")
@@ -39,7 +40,7 @@ def download_audio_model_files_from_s3():
     print(f"[Audio] Attempting to download model files to {LOCAL_MODEL_BASE_DIR}")
 
     if _S3_CLIENT_AUDIO is None:
-        _S3_CLIENT_AUDIO = boto3.client("s3")
+        _S3_CLIENT_AUDIO = boto3.client("s3", region_name=REGION)
     
     # Make sure the local directories exists
     os.makedirs(LOCAL_MODEL_BASE_DIR, exist_ok=True)

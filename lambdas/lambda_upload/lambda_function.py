@@ -5,7 +5,7 @@ import mimetypes
 import base64
 import json
 
-s3 = boto3.client('s3')
+s3 = boto3.client('s3', region_name="ap-southeast-2")
 dynamodb = boto3.resource('dynamodb')
 lambda_client = boto3.client('lambda')
 

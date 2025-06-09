@@ -18,9 +18,10 @@ ENV = os.getenv("ENV", "prod") # default to prod if ENV is not set
 if ENV == "dev":
     import supervision as sv
 
-DEFAULT_S3_BUCKET = "birdtag-inference-models"
+DEFAULT_S3_BUCKET = "birdtag-inference-models-group9"
 DEFAULT_S3_KEY = "visual/model.pt"
 DEFAULT_LOCAL_MODEL_PATH = os.path.join(tempfile.gettempdir(), "model.pt")
+DEFAULT_REGION = "ap-southeast-2"
 
 def download_model_from_s3():
     """
@@ -28,11 +29,12 @@ def download_model_from_s3():
     """
     bucket = os.environ.get("S3_MODEL_BUCKET", DEFAULT_S3_BUCKET)
     key = os.environ.get("S3_MODEL_KEY", DEFAULT_S3_KEY)
+    region = os.environ.get("REGION", DEFAULT_REGION)
     local_path = DEFAULT_LOCAL_MODEL_PATH
 
     if not os.path.exists(local_path): # if model not already downloaded
         print(f"Downloading model from s3://{bucket}/{key} to {local_path}", flush=True)
-        s3 = boto3.client('s3')
+        s3 = boto3.client('s3', region_name = region)
         try:
             s3.download_file(bucket, key, local_path)
             print(f"Model downloaded from s3://{bucket}/{key} to {local_path}")
