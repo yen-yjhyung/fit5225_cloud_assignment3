@@ -53,6 +53,8 @@ export default function VerifyEmailForm() {
       className="flex items-center justify-center min-h-screen bg-cover bg-center bg-no-repeat px-4"
       style={{ backgroundImage: "url('/bird_picture.jpg')" }}
     >
+      <div className="absolute inset-0 bg-white/8" />
+      
       <div className="relative z-10 w-full max-w-sm rounded-lg bg-white/90 p-8 shadow-xl backdrop-blur">
         <div className="text-center mb-6">
           <img
