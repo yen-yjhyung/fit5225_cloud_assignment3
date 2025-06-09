@@ -21,4 +21,4 @@ RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Lambda handler entry
-CMD ["audio_tagging.lambda_handler"]
+CMD ["audio_query_tagging.lambda_handler"]
