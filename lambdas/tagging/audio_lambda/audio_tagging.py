@@ -7,14 +7,14 @@ from detect_audio_wrapper import run_audio_tagging
 from utils import generate_dynamodb_record
 
 TABLE_NAME = os.environ.get("TABLE_NAME", "FileMetadata")
-REGION = os.environ.get("REGION", "us-east-1")
+REGION = os.environ.get("REGION", "ap-southeast-2")
 print(f"Using DynamoDB table: {TABLE_NAME} in region: {REGION}")
 dynamodb = boto3.resource("dynamodb", region_name=REGION)
-s3_client = boto3.client("s3", region_name=REGION)
+# s3_client = boto3.client("s3", region_name=REGION)
 
 # Initialize SNS client for warm start
 sns_client = boto3.client("sns", region_name=REGION)
-SNS_TOPIC_ARN = os.environ.get("SNS_TOPIC_ARN", "arn:aws:sns:REGION:ACCOUNT_ID:BirdTaggingResultsTopic")
+SNS_TOPIC_ARN = os.environ.get(f"SNS_TOPIC_ARN", "arn:aws:sns:ap-southeast-2:960005777900:BirdtagDetectionNotifications")
 
 # Lambda_handler.V3
 def lambda_handler(event, context):
@@ -33,7 +33,7 @@ def lambda_handler(event, context):
         # Download file
         local_path = os.path.join(tempfile.gettempdir(), os.path.basename(key))
         print(f"Downloading from S3: s3://{bucket}/{key} to {local_path}")
-        s3 = boto3.client("s3")
+        s3 = boto3.client("s3", region_name=REGION)
         s3.download_file(bucket, key, local_path)
         print(f"Downloaded file size: {os.path.getsize(local_path)} bytes")
         print("File downloaded successfully.")
