@@ -1,0 +1,14 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation template for SES Email Identity verification.
+
+Parameters:
+  SenderEmailAddress:
+    Type: String
+    Description: The email address to be verified for sending emails with SES.
+    ConstraintDescription: Must be a valid email address.
+
+Resources:
+  SesEmailIdentity:
+    Type: AWS::SES::EmailIdentity
+    Properties:
+      EmailIdentity: !Ref SenderEmailAddress

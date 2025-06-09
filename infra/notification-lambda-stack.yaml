@@ -1,0 +1,96 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation template for the Birdtag Notification Lambda function
+
+Parameters:
+  SnsTopicArn:
+    Type: String
+    Description: ARN of the SNS Topic that the notification Lambda will subscribe to.
+
+  SesSenderEmail:
+    Type: String
+    Description: An email address verified in AWS SES to send notifications from.
+    ConstraintDescription: Must be a valid email address verified in AWS SES.
+
+  LambdaCodeS3Bucket:
+    Type: String
+    Description: S3 bucket where the Lambda deployment package (zip file) is stored.
+
+  LambdaCodeS3Key:
+    Type: String
+    Description: S3 key (path to zip file) of the Lambda deployment package.
+    Default: notification_lambda.zip
+
+  CognitoUserPoolId:
+    Type: String
+    Description: The ID of the Cognito User Pool containing the users to notify.
+
+Resources:
+  # IAM Role for the Notification Lambda Function
+  NotificationLambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole # Allows logging to CloudWatch
+      Policies:
+        - PolicyName: LambdaSesSnsCognitoPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ses:SendEmail
+                  - ses:SendRawEmail
+                  - ses:SendTemplatedEmail
+                Resource: "*" # Allows sending from any verified identity
+              - Effect: Allow
+                Action:
+                  - sns:Publish
+                Resource: !Ref SnsTopicArn
+              - Effect: Allow
+                Action:
+                  - cognito-idp:ListUsers
+                  - cognito-idp:ListUsersInGroup
+                Resource: !Sub "arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${CognitoUserPoolId}"
+
+  # Notification Lambda Function
+  BirdtagNotificationLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: birdtag-notification-lambda
+      Handler: notification_lambda.lambda_handler
+      Runtime: python3.9
+      MemorySize: 128
+      Timeout: 60
+      Role: !GetAtt NotificationLambdaExecutionRole.Arn
+      Code:
+        S3Bucket: !Ref LambdaCodeS3Bucket
+        S3Key: !Ref LambdaCodeS3Key
+      Environment:
+        Variables:
+          SES_SENDER_EMAIL: !Ref SesSenderEmail
+          # Removed AWS_REGION as it's a reserved environment variable
+          COGNITO_USER_POOL_ID: !Ref CognitoUserPoolId
+
+  # Permission for SNS to invoke the Notification Lambda
+  LambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt BirdtagNotificationLambda.Arn
+      Action: lambda:InvokeFunction
+      Principal: sns.amazonaws.com
+      SourceArn: !Ref SnsTopicArn
+
+  # SNS Subscription for the Notification Lambda
+  NotificationSnsSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: lambda
+      Endpoint: !GetAtt BirdtagNotificationLambda.Arn
+      TopicArn: !Ref SnsTopicArn
