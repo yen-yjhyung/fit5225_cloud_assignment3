@@ -14,6 +14,7 @@ export default function UploadPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const tokens: Tokens = useAuthTokens();
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL;
 
   const { checking } = useCurrentUser();
 
@@ -58,7 +59,7 @@ export default function UploadPage() {
         }
 
         const res = await fetch(
-          "https://4rhd66ujoc.execute-api.ap-southeast-2.amazonaws.com/prod/upload",
+          `${API_BASE}/upload`,
           {
             // const res = await fetch("https://obadhri1sg.execute-api.us-east-1.amazonaws.com/prod/upload", {
             method: "POST",
