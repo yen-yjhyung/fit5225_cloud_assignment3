@@ -180,7 +180,7 @@ def transform_item(item):
     Convert a DynamoDB record into the response format, generating presigned URLs.
     Input `item` example (via boto3.resource):
       {
-        "id": "84330c77-6964-420b-b461-a18777fceebf",
+        "fileId": "84330c77-6964-420b-b461-a18777fceebf",
         "bucket": "birdtagbucket-assfdas",
         "format": "jpg",
         "key": "images/84330c77-...jpg",
@@ -202,7 +202,7 @@ def transform_item(item):
         "thumbnailLink": "<presigned URL for thumbnailKey>"  # only if type == "image"
       }
     """
-    item_id    = item.get("id")
+    item_id    = item.get("fileId")
     media_type = item.get("type", "").lower()
     raw_tags   = item.get("tags", [])
     key        = item.get("key")
